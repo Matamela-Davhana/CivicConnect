@@ -1,2 +1,13 @@
+Risks   
+ID	Specific Event/Condition and Cause	Probability and Impact	Priority/ Exposure	Realistic Mitigation and Contingency	Owner and Status	Updated at each Milestone	Connected to issues/decisions were realised
+RISK-001	Technology stack unfamiliarity may delay design and implementation. Architecture and platform deliberately deferred to M2(CON-008).	High probability. High impact	Critical	Conduct proof-of-concepts and research ADRs early. Switch to simpler/known stack if delays exceed milestone schedule.	Matamela Davhana.
+Open.	M1: identified as critical.	Linked to DEC-001
+RISK-002	Requirements may be incomplete or misunderstood. Stakeholder communication gaps and scope baseline may contain exclusions.	Medium probability. High impact	High.	Scope adjustment via formal change request(CON-009).	Jininy Nkomo.
+Open.	M1: Initial RTM drafted.	Linked to Issue 12 of requirement clarification.
+RISK-003	Sensitive request data mishandled. Using informal channels that have weak access control.	Medium probability. High impact.	High.	Enforce least privilege (FR-001, NFR-001) and repository governance. Restrict scope to non-sensitive data until controls mature.	Mkhanyisi Mqadi. Open.	M1: identified.	Kinked to DEC-002 and issue 15 of privacy concern. 
+RISK-004	Schedule slippage due to workload. Academic deadlines overlap with milestones(CON-002).	Medium probability. Medium impact.	Medium.	Weekly progress tracking and milestone readiness checks. Request scope reduction/change approval.	Matamela Davhana.
+Open.	M1: identified.	Linked to change request CR-001.
+RISK-005	Poor GitHub governance causes uncontrolled merges. Team members bypass review process(CON-007).	Low probability. High impact.	Medium.	Protect main branch and enforce double approvals. Rollback merge and re-review.	Mkhanyisi Mqadi.
+Open.	M1: identified.	Linked to DEC-001 and PR 7
 
 git checkout risk/RISK-005-github-governance
