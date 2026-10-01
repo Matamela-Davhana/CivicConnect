@@ -1,0 +1,65 @@
+Design Problem 1: Request Type Handling 
+Context:
+CivicConnect must handle multiple request categories, such as maintenance, IT support, and safety, each with distinct validation and prioritization rules. A single monolithic request-creation class would violate SRP and OCP, making the system hard to extend and test.
+
+A2 Evidence:
+Assignment 2 compared Factory method and Strategy patterns.
+•	Factory method focuses on object creation and would require new subclasses for every category.
+•	Strategy encapsulates variable behaviour, allowing category-specific logic to vary independently of the class.
+
+Final decision:
+Adopt the Strategy pattern for category-specific validation and priority logic.
+
+Why it Fits CivicConnect:
+•	Aligns with the SRP, OCP, and DIP principles.
+•	Keeps the request class cohesive and testable.
+•	Categories share the underlying request structure whereas variation lies in rules, not object shape.
+•	Supports future expansion without modifying existing code.
+
+Expected Benefits:
+•	Reduced coupling between request logic and category rules.
+•	Improved cohesion and maintainability.
+•	Easier unit testing in individual strategies.
+
+Trade-offs:
+•	More classes to maintain.
+•	Slightly higher abstraction overhead.
+
+Affected Modules/Classes:
+Request, ValidateStrategy interface, concrete strategies (MaintainabilityStrategy, ITsupportStrategy, SafetyStrategy). 
+ 
+Implementation Evidence:
+Implementation has not yet begun. This decision is recorded as forward engineering and will be implemented in Milestone 3.
+
+Design Problem 2: Status Change Notification Coupling
+Context:
+When a request’s status changes, multiple actions occur. Notifying citizens, updating dashboards, and recording audit logs. Direct calls to each service create tight coupling and violate SRP and DIP, making the system fragile and hard to expand.
+
+A2 Evidence:
+Assignment 2 compared Observer and Mediator patterns.
+•	Observer supports independent, order insensitive reactions.
+•	Mediator centralizes coordination but risks becoming a single-point-of-error.
+
+Final Decision:
+Adopt the Observer pattern for status-change notifications.
+
+Why it Fits CIivicConnect:
+•	Decouples RequestStatus from concrete notification channels.
+•	Each observer (Email, SMS, Dashboard, Audit) handles one responsibility.
+•	New channels can be added without modifying the subject.
+•	Aligns with FR-011, FR-014, and NFR-008 (auditability).
+
+Expected Benefits:
+•	Reduced coupling and improved cohesion.
+•	Simplified extensibility for future notification channels.
+•	Clear separation of responsibilities.
+
+Trade-offs:
+•	Implicit notification ordering. May require mediator if coordination becomes complex.
+•	Slight increase in setup complexity.
+
+Affected Modules/Classes:
+RequestStatus (subject), Observer interface, concrete observers ( EmailNotifier, SMSNotifier, AuditLogger, DashboardUpdater).
+ 
+Implementation Evidence:
+Implementation has not yet begun. This decision is recorded as forward engineering and will be implemented in Milestone 3.
