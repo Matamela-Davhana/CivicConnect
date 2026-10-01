@@ -1,1 +1,34 @@
+Initial Requirements Traceability Matrix
+The RTM records the traceability that currently exists at M1 and reserves-controlled fields for later evidence. Future design, implementation, test and release identifiers are intentionally marked Planned rather than fabricated.
+Requirement	Stakeholder or source	Acceptance ID	Current M1 evidence	Planned downstream evidence	Status
+FR-001	STK-01 to STK-05	AC-FR-001	Member 1 stakeholder register and scope baseline; AC-FR-001	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-002	STK-01	AC-FR-002	Member 1 stakeholder register and scope baseline; AC-FR-002	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-003	STK-01, STK-03, STK-04	AC-FR-003	Member 1 stakeholder register and scope baseline; AC-FR-003	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-004	STK-01, STK-05	AC-FR-004	Member 1 stakeholder register and scope baseline; AC-FR-004	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-005	STK-01	AC-FR-005	Member 1 stakeholder register and scope baseline; AC-FR-005	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-006	STK-01	AC-FR-006	Member 1 stakeholder register and scope baseline; AC-FR-006	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-007	STK-02, STK-05	AC-FR-007	Member 1 stakeholder register and scope baseline; AC-FR-007	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-008	STK-02	AC-FR-008	Member 1 stakeholder register and scope baseline; AC-FR-008	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-009	STK-02, STK-05	AC-FR-009	Member 1 stakeholder register and scope baseline; AC-FR-009	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-010	STK-02, STK-03	AC-FR-010	Member 1 stakeholder register and scope baseline; AC-FR-010	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-011	STK-02, STK-03	AC-FR-011	Member 1 stakeholder register and scope baseline; AC-FR-011	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-012	STK-01, STK-02, Conflict 1	AC-FR-012	Member 1 stakeholder register and scope baseline; AC-FR-012	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-013	STK-02	AC-FR-013	Member 1 stakeholder register and scope baseline; AC-FR-013	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-014	STK-02	AC-FR-014	Member 1 stakeholder register and scope baseline; AC-FR-014	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-015	STK-03, STK-05, Conflict 2	AC-FR-015	Member 1 stakeholder register and scope baseline; AC-FR-015	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-016	STK-03	AC-FR-016	Member 1 stakeholder register and scope baseline; AC-FR-016	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-017	STK-03, STK-05	AC-FR-017	Member 1 stakeholder register and scope baseline; AC-FR-017	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+FR-018	STK-04, STK-05	AC-FR-018	Member 1 stakeholder register and scope baseline; AC-FR-018	M2 design/ADR; M3 issue, PR and test; M4 acceptance/release evidence	Draft
+NFR-001	STK-05; Master Brief security standard	AC-NFR-001	Master Brief quality/security/constraint standard; AC-NFR-001	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-002	STK-05; Conflict 2	AC-NFR-002	Master Brief quality/security/constraint standard; AC-NFR-002	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-003	STK-01 to STK-03	AC-NFR-003	Master Brief quality/security/constraint standard; AC-NFR-003	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-004	STK-01, STK-02	AC-NFR-004	Master Brief quality/security/constraint standard; AC-NFR-004	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-005	STK-01; quality constraint	AC-NFR-005	Master Brief quality/security/constraint standard; AC-NFR-005	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-006	Scope baseline; STK-01, STK-02	AC-NFR-006	Master Brief quality/security/constraint standard; AC-NFR-006	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-007	STK-02, STK-03	AC-NFR-007	Master Brief quality/security/constraint standard; AC-NFR-007	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-008	STK-03, STK-05	AC-NFR-008	Master Brief quality/security/constraint standard; AC-NFR-008	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-009	STK-06; Master Brief quality standard	AC-NFR-009	Master Brief quality/security/constraint standard; AC-NFR-009	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-010	STK-01 to STK-03; cost constraint	AC-NFR-010	Master Brief quality/security/constraint standard; AC-NFR-010	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-011	STK-03, STK-05	AC-NFR-011	Master Brief quality/security/constraint standard; AC-NFR-011	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
+NFR-012	STK-07; Master Brief governance standard	AC-NFR-012	Master Brief quality/security/constraint standard; AC-NFR-012	M2 quality driver/design; M3 test or control evidence; M4 operational evidence	Draft
 
