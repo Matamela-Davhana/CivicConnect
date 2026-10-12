@@ -1,0 +1,178 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  backend-static-analysis:
+    name: Backend static analysis (ESLint)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: source/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: source/backend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+
+  frontend-build-and-lint:
+    name: Frontend lint and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: source/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: source/frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+
+  dependency-audit:
+    name: Dependency audit (npm audit)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [source/backend, source/frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Audit production dependencies for high and critical advisories
+        working-directory: ${{ matrix.project }}
+        run: npm audit --omit=dev --audit-level=high
+
+  secrets-scan:
+    name: Secrets scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  backend-tests:
+    name: Backend unit, black-box, API and system tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: civicconnect_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d civicconnect_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      NODE_ENV: test
+      PORT: '3000'
+      BASE_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/civicconnect_test
+      JWT_SECRET: ci-only-signing-key-not-used-anywhere-else
+    defaults:
+      run:
+        working-directory: source/backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: source/backend/package-lock.json
+      - run: npm ci
+      - name: Apply database migration to the ephemeral test database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f migrations/001_initial_schema.sql
+      - name: Unit tests
+        run: npm run test:unit
+      - name: Black-box and API/integration tests with coverage
+        run: npm run test:integration
+      - name: Start the application for system tests
+        run: |
+          node src/server.js > server.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf "$BASE_URL/api/health" > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat server.log
+          exit 1
+      - name: System (end-to-end) tests against the running application
+        run: npm run test:e2e
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "const s=require('./coverage/coverage-summary.json').total; console.log('### Backend coverage\n| Metric | Covered |\n|---|---|\n' + ['lines','statements','functions','branches'].map(k=>'| '+k+' | '+s[k].pct+'% ('+s[k].covered+'/'+s[k].total+') |').join('\n'))" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: source/backend/coverage
+          if-no-files-found: ignore
+      - name: Upload server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-server-log
+          path: source/backend/server.log
+          if-no-files-found: ignore
+
+  quality-gate:
+    name: Quality gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - backend-static-analysis
+      - frontend-build-and-lint
+      - dependency-audit
+      - secrets-scan
+      - backend-tests
+    steps:
+      - name: Fail unless every required check succeeded
+        run: |
+          echo "backend-static-analysis: ${{ needs.backend-static-analysis.result }}"
+          echo "frontend-build-and-lint: ${{ needs.frontend-build-and-lint.result }}"
+          echo "dependency-audit: ${{ needs.dependency-audit.result }}"
+          echo "secrets-scan: ${{ needs.secrets-scan.result }}"
+          echo "backend-tests: ${{ needs.backend-tests.result }}"
+          if [ "${{ needs.backend-static-analysis.result }}" != "success" ] \
+            || [ "${{ needs.frontend-build-and-lint.result }}" != "success" ] \
+            || [ "${{ needs.dependency-audit.result }}" != "success" ] \
+            || [ "${{ needs.secrets-scan.result }}" != "success" ] \
+            || [ "${{ needs.backend-tests.result }}" != "success" ]; then
+            exit 1
+          fi
