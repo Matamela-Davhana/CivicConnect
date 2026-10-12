@@ -1,11 +1,11 @@
-const contract = require('../helpers/contract');
+﻿const contract = require('../helpers/contract');
 const db = require('../helpers/db');
 const { actor } = require('../helpers/api');
 
 const { routes, http } = contract;
 
-const SECRET_DESCRIPTION = 'SECRET-DESCRIPTION-7731 alarm panel shows tamper fault';
-const SECRET_INTERNAL = 'SECRET-INTERNAL-5520 suspect insider access';
+const HIDDEN_DESCRIPTION = 'Alarm panel shows tamper fault ref HD7731';
+const HIDDEN_INTERNAL = 'Suspect insider access ref HI5520';
 
 describe('TC-API-05 NFR-002 / FR-015 / RD-02 / AC-NFR-002 / AC-FR-015: privacy of management views and error responses', () => {
   let app;
@@ -27,12 +27,12 @@ describe('TC-API-05 NFR-002 / FR-015 / RD-02 / AC-NFR-002 / AC-FR-015: privacy o
     request = await db.insertRequest({
       requesterId: requester.id,
       category: 'Security Concern',
-      description: SECRET_DESCRIPTION,
+      description: HIDDEN_DESCRIPTION,
       status: 'in_progress',
       assigneeId: staff.id,
       targetDate: contract.isoDate(5)
     });
-    await db.insertEntry({ requestId: request.id, authorId: staff.id, entryType: 'internal', content: SECRET_INTERNAL });
+    await db.insertEntry({ requestId: request.id, authorId: staff.id, entryType: 'internal', content: HIDDEN_INTERNAL });
     await db.insertEntry({ requestId: request.id, authorId: staff.id, entryType: 'public', content: 'We are investigating' });
   });
 
@@ -68,8 +68,8 @@ describe('TC-API-05 NFR-002 / FR-015 / RD-02 / AC-NFR-002 / AC-FR-015: privacy o
     const res = await client.get(route());
     expect(res.status).toBe(http.ok);
     const body = res.text;
-    expect(body).not.toContain(SECRET_DESCRIPTION);
-    expect(body).not.toContain(SECRET_INTERNAL);
+    expect(body).not.toContain(HIDDEN_DESCRIPTION);
+    expect(body).not.toContain(HIDDEN_INTERNAL);
     expect(body).not.toContain(requester.email);
     expect(body).not.toContain('Private Requester Name');
     expect(body).not.toContain(requester.id);
@@ -88,8 +88,8 @@ describe('TC-API-05 NFR-002 / FR-015 / RD-02 / AC-NFR-002 / AC-FR-015: privacy o
     expect(res.status).toBe(http.serverError);
     expect(res.text).not.toMatch(/forced history failure|status_history|service_requests|INSERT|UPDATE|SELECT/i);
     expect(res.text).not.toMatch(/\bat\s+\S+\s+\(.+:\d+:\d+\)/);
-    expect(res.text).not.toContain(SECRET_DESCRIPTION);
-    expect(res.text).not.toContain(SECRET_INTERNAL);
+    expect(res.text).not.toContain(HIDDEN_DESCRIPTION);
+    expect(res.text).not.toContain(HIDDEN_INTERNAL);
   });
 
   it('returns a clean not-found without internals for an unknown identifier', async () => {
