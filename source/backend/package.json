@@ -2,9 +2,16 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/server.js",
+    "lint": "eslint .",
+    "test": "jest --selectProjects unit integration --runInBand --coverage --forceExit",
+    "test:unit": "jest --selectProjects unit",
+    "test:integration": "jest --selectProjects integration --runInBand --coverage --forceExit",
+    "test:e2e": "jest --selectProjects e2e --runInBand",
+    "audit:prod": "npm audit --omit=dev --audit-level=high",
+    "audit:all": "npm audit --audit-level=high"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +22,12 @@
     "express": "^5.2.1",
     "node-pg-migrate": "^9.0.0",
     "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "globals": "^17.12.0",
+    "jest": "^30.5.2",
+    "supertest": "^7.3.1"
   }
 }
