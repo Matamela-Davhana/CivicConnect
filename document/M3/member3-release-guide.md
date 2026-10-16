@@ -15,6 +15,7 @@ Implemented here:
 - Automated tool self-tests against an in-memory HTTP fixture, not CivicConnect.
 - A separate CI job for these self-tests (not a substitute for the application Quality gate).
 - Staging, rollback, performance and evidence procedures below.
+- A disposable local PostgreSQL preparation script and its configuration guard tests; see [local database procedure](local-staging-database.md). Database infrastructure is separate from a completed application deployment.
 
 ## 1. Verify the tools now
 
@@ -22,12 +23,15 @@ From the repository root, using Node 24 to match PR #15's CI:
 
 ```text
 node --test tools/m3/checks.test.mjs
+node --test tools/m3/local-db.test.mjs
 node tools/m3/run.mjs --help
 ```
 
 The self-test fixture is deliberately temporary and local. Its successful results MUST NOT be labelled as application acceptance, E2E or NFR-003 performance results. The separate workflow `release-tooling.yml` automatically runs these tests on PRs to main and pushes to main. Its failure fails that job; only repository protection makes a check a merge blocker. Retain the application's required Quality gate and two-review rule.
 
 Local verification on 2026-10-16: Windows, Node v24.19.0, 15 tool self-tests passed, zero failed. Covered unsafe-target rejection, workload validation, percentile calculation, malformed/empty/error/redirect/timeout handling, warm-up failures, measured failures, report redaction and refusal to overwrite evidence. This is not the M3 minimum of 15 application test cases; these helper tests are additional engineering checks. CI evidence should be linked from the contribution PR after it runs.
+
+The initial 15-test tooling contribution is published in [PR #16](https://github.com/Matamela-Davhana/CivicConnect/pull/16), with a [successful tooling workflow](https://github.com/Matamela-Davhana/CivicConnect/actions/runs/38958399061) for commit `137a8bbd755c752025d9b7f3416ae9896c7a4b64`. That run does not cover later local-database additions; their new commit/run must be recorded separately.
 
 ## 2. Prepare an isolated staging environment
 

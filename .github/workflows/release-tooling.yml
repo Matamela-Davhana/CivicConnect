@@ -23,4 +23,6 @@ jobs:
         run: |
           node --check tools/m3/run.mjs
           node --check tools/m3/checks.mjs
+          node --check tools/m3/local-db.mjs
           node --test tools/m3/checks.test.mjs
+          node --test tools/m3/local-db.test.mjs
