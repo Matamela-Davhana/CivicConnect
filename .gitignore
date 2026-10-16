@@ -5,6 +5,13 @@ node_modules/
 # Environment variables
 .env
 **/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Generated release evidence: review/redact before explicitly publishing.
+artifacts/
 
 # Build output
 dist/
