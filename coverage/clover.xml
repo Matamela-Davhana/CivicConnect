@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<coverage generated="1792177752412" clover="3.2.0">
-  <project timestamp="1792177752412" name="All files">
+<coverage generated="1792178572345" clover="3.2.0">
+  <project timestamp="1792178572345" name="All files">
     <metrics statements="156" coveredstatements="91" conditionals="70" coveredconditionals="27" methods="52" coveredmethods="19" elements="278" coveredelements="137" complexity="0" loc="156" ncloc="156" packages="3" files="9" classes="9"/>
     <package name="src">
       <metrics statements="6" coveredstatements="6" conditionals="0" coveredconditionals="0" methods="1" coveredmethods="0"/>
@@ -25,26 +25,26 @@
       </file>
       <file name="statusTransitions.js" path="C:\Users\dtami\Documents\GitHub\CivicConnect\source\backend\src\domain\statusTransitions.js">
         <metrics statements="4" coveredstatements="4" conditionals="2" coveredconditionals="2" methods="1" coveredmethods="1"/>
-        <line num="1" count="2" type="stmt"/>
-        <line num="12" count="2" type="stmt"/>
-        <line num="13" count="69" type="cond" truecount="2" falsecount="0"/>
-        <line num="15" count="2" type="stmt"/>
+        <line num="1" count="3" type="stmt"/>
+        <line num="12" count="3" type="stmt"/>
+        <line num="13" count="71" type="cond" truecount="2" falsecount="0"/>
+        <line num="15" count="3" type="stmt"/>
       </file>
       <file name="submission.js" path="C:\Users\dtami\Documents\GitHub\CivicConnect\source\backend\src\domain\submission.js">
         <metrics statements="13" coveredstatements="13" conditionals="12" coveredconditionals="12" methods="2" coveredmethods="2"/>
-        <line num="1" count="32" type="cond" truecount="2" falsecount="0"/>
-        <line num="3" count="1" type="stmt"/>
-        <line num="4" count="14" type="stmt"/>
-        <line num="6" count="14" type="cond" truecount="2" falsecount="0"/>
-        <line num="7" count="2" type="stmt"/>
-        <line num="8" count="12" type="cond" truecount="2" falsecount="0"/>
+        <line num="1" count="41" type="cond" truecount="2" falsecount="0"/>
+        <line num="3" count="2" type="stmt"/>
+        <line num="4" count="18" type="stmt"/>
+        <line num="6" count="18" type="cond" truecount="2" falsecount="0"/>
+        <line num="7" count="3" type="stmt"/>
+        <line num="8" count="15" type="cond" truecount="2" falsecount="0"/>
         <line num="9" count="2" type="stmt"/>
-        <line num="12" count="14" type="cond" truecount="2" falsecount="0"/>
-        <line num="13" count="3" type="stmt"/>
-        <line num="16" count="14" type="cond" truecount="4" falsecount="0"/>
-        <line num="17" count="3" type="stmt"/>
-        <line num="20" count="14" type="stmt"/>
-        <line num="23" count="1" type="stmt"/>
+        <line num="12" count="18" type="cond" truecount="2" falsecount="0"/>
+        <line num="13" count="4" type="stmt"/>
+        <line num="16" count="18" type="cond" truecount="4" falsecount="0"/>
+        <line num="17" count="4" type="stmt"/>
+        <line num="20" count="18" type="stmt"/>
+        <line num="23" count="2" type="stmt"/>
       </file>
       <file name="visibility.js" path="C:\Users\dtami\Documents\GitHub\CivicConnect\source\backend\src\domain\visibility.js">
         <metrics statements="5" coveredstatements="5" conditionals="4" coveredconditionals="4" methods="2" coveredmethods="2"/>
