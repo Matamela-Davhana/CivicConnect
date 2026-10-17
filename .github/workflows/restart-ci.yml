@@ -1,0 +1,262 @@
+name: CivicConnect Restart CI
+
+"on":
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, role1/devops-foundation]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: restart-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24.19.0'
+  CI: 'true'
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pipeline-tools:
+    name: DevOps helper self-tests (not application tests)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - run: node --test tools/devops/helpers.test.mjs
+      - name: Record the exact code under test
+        env:
+          TESTED_SHA: ${{ github.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          node tools/devops/write-run-summary.mjs
+
+  frontend:
+    name: Frontend build and lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: source/frontend/package-lock.json
+      - run: node tools/devops/ci-contract.mjs frontend
+      - run: npm ci --no-fund --no-audit
+        working-directory: source/frontend
+      - run: npm run lint
+        working-directory: source/frontend
+      - run: npm run build
+        working-directory: source/frontend
+
+  backend:
+    name: Backend unit, integration and API journeys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: civicconnect_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d civicconnect_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      NODE_ENV: test
+      HOST: 127.0.0.1
+      PORT: '3000'
+      BASE_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgres://postgres:disposable-ci-only@127.0.0.1:5432/civicconnect_test
+      DATABASE_SSL: 'false'
+      JWT_SECRET: ephemeral-ci-only-never-use-for-hosting-or-real-users
+      PGPASSWORD: disposable-ci-only
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: source/backend/package-lock.json
+      - run: node tools/devops/ci-contract.mjs backend
+      - run: npm ci --no-fund --no-audit
+        working-directory: source/backend
+      - run: npm run lint
+        working-directory: source/backend
+      - name: Migrate only the disposable CI database
+        run: psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f source/backend/migrations/001_initial_schema.sql
+      - run: npm run test:unit
+        working-directory: source/backend
+      - run: npm run test:integration
+        working-directory: source/backend
+      - name: Start the API and execute real HTTP journeys
+        run: |
+          mkdir -p artifacts/devops
+          setsid bash -c 'cd source/backend && exec npm start' > artifacts/devops/backend.log 2>&1 &
+          API_PID=$!
+          trap 'kill -- -"$API_PID" 2>/dev/null || true' EXIT
+          node tools/devops/wait-ready.mjs "$BASE_URL/api/health" api
+          npm --prefix source/backend run test:e2e
+      - name: Retain test evidence (never environment files)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: restart-backend-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            source/backend/coverage/
+            source/backend/test-results/
+            artifacts/devops/backend.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  browser-e2e:
+    name: Browser end-to-end journeys
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    needs: [frontend, backend]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: disposable-ci-only
+          POSTGRES_DB: civicconnect_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d civicconnect_test"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+    env:
+      NODE_ENV: test
+      HOST: 127.0.0.1
+      PORT: '3000'
+      BASE_URL: http://127.0.0.1:3000
+      E2E_BASE_URL: http://127.0.0.1:4173
+      VITE_API_BASE_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgres://postgres:disposable-ci-only@127.0.0.1:5432/civicconnect_test
+      DATABASE_SSL: 'false'
+      JWT_SECRET: ephemeral-ci-only-never-use-for-hosting-or-real-users
+      PGPASSWORD: disposable-ci-only
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            source/backend/package-lock.json
+            source/frontend/package-lock.json
+      - run: node tools/devops/ci-contract.mjs browser
+      - run: npm ci --no-fund --no-audit
+        working-directory: source/backend
+      - run: npm ci --no-fund --no-audit
+        working-directory: source/frontend
+      - run: npm run test:e2e:install
+        working-directory: source/frontend
+      - run: npm run build
+        working-directory: source/frontend
+      - run: psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f source/backend/migrations/001_initial_schema.sql
+      - name: Exercise the built UI against the real API and disposable database
+        run: |
+          mkdir -p artifacts/devops
+          setsid bash -c 'cd source/backend && exec npm start' > artifacts/devops/browser-api.log 2>&1 &
+          API_PID=$!
+          trap 'kill -- -"$API_PID" 2>/dev/null || true' EXIT
+          setsid bash -c 'cd source/frontend && exec npm run preview -- --host 127.0.0.1 --port 4173 --strictPort' > artifacts/devops/browser-ui.log 2>&1 &
+          UI_PID=$!
+          trap 'kill -- -"$API_PID" -"$UI_PID" 2>/dev/null || true' EXIT
+          node tools/devops/wait-ready.mjs "$BASE_URL/api/health" api
+          node tools/devops/wait-ready.mjs "$E2E_BASE_URL" web
+          npm --prefix source/frontend run test:e2e
+      - name: Retain synthetic-data browser evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: restart-browser-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            source/frontend/playwright-report/
+            source/frontend/test-results/
+            artifacts/devops/browser-api.log
+            artifacts/devops/browser-ui.log
+          if-no-files-found: warn
+          retention-days: 14
+
+  dependency-audit:
+    name: Dependency audit (runtime and development)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [backend, frontend]
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Block on high/critical production advisories
+        working-directory: source/${{ matrix.project }}
+        run: npm audit --omit=dev --audit-level=high
+      - name: Also fail on high/critical build and test-tool advisories
+        if: always()
+        working-directory: source/${{ matrix.project }}
+        run: npm audit --audit-level=high
+
+  secrets:
+    name: Secret scanning
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+          GITLEAKS_VERSION: '8.30.1'
+
+  quality-gate:
+    name: Restart quality gate
+    if: always()
+    needs: [pipeline-tools, frontend, backend, browser-e2e, dependency-audit, secrets]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          package-manager-cache: false
+      - name: Reject any failed, missing, skipped or cancelled required job
+        env:
+          CI_JOB_RESULTS: ${{ toJSON(needs) }}
+        run: node tools/devops/quality-gate.mjs
