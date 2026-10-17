@@ -1,0 +1,28 @@
+name: Release tooling
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  release-tooling:
+    name: Release tooling self-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check syntax and test tooling against local fixtures only
+        run: |
+          node --check tools/m3/run.mjs
+          node --check tools/m3/checks.mjs
+          node --check tools/m3/local-db.mjs
+          node --test tools/m3/checks.test.mjs
+          node --test tools/m3/local-db.test.mjs
