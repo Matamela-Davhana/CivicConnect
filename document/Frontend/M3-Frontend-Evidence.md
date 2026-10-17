@@ -139,13 +139,13 @@ Interpretation: this is a build-size measurement only. It does not show load tim
 | Edge | `[[ ]]` | `[[ ]]` | `[[ ]]` | |
 | Firefox | `[[ ]]` | `[[ ]]` | `[[ ]]` | |
 
-**Hosting note that affects frontend evidence.** ADR-M2-TECH-002 records that the free Render tier spins down after 15 minutes and takes about a minute to wake. The first request after idle will show the loading state for a long time. E2E tests against staging need generous timeouts, and the loading state is the user-facing mitigation. Cite this in the staging section.
+**Hosting note that affects frontend evidence.** ADR-M2-TECH-002 records that the free Render tier spins down after 15 minutes and takes about a minute to wake. The first request after idle will show the loading state for a long time. E2E tests against staging need generous timeouts, and the loading state is the user-facing mitigation. Cite this in the staging section. For a separately hosted frontend, build it with `VITE_API_URL` set to the backend's URL and make sure the backend allows that origin (CORS, PED section 16); with the variable unset the frontend only works when the API is served from the same origin.
 
 ---
 
 ## 7. PED v3.0 text for the frontend (paste into the existing PED; evidence-index style)
 
-**Section 4, Construction/configuration.** The frontend is a React single-page application (Vite, `react-router-dom`) in `source/frontend`, built on `feature/frontend-foundation` then `feature/frontend-ui` and integrated through PR [PR #20](https://github.com/Matamela-Davhana/CivicConnect/pull/20). It calls the backend only through HTTP endpoints, as PED section 5.5 requires. The API base URL comes from `[[env variable name]]`; no secrets are committed.
+**Section 4, Construction/configuration.** The frontend is a React single-page application (Vite, `react-router-dom`) in `source/frontend`, built on `feature/frontend-foundation` then `feature/frontend-ui` and integrated through PR [PR #20](https://github.com/Matamela-Davhana/CivicConnect/pull/20). It calls the backend only through HTTP endpoints, as PED section 5.5 requires. The API base URL comes from the build-time variable `VITE_API_URL` (`src/api/client.js`); when it is unset the client uses same-origin relative URLs, so each environment sets it at build time. Variables prefixed `VITE_` are embedded in the public bundle, so no secret is ever placed in one, and no secrets are committed.
 
 **Section 5, CI and automated verification.** CI runs `npm ci`, `npm run lint`, `npm test` and `npm run build` in `source/frontend` (`[[workflow link]]`). A failure in any step blocks the merge. A green run shows the frontend compiles and passes its component and accessibility tests against a mocked API. It does not show colour-contrast compliance or agreement with the real backend.
 
@@ -181,6 +181,6 @@ Interpretation: this is a build-size measurement only. It does not show load tim
 
 **Quality interpretation.** "39 passed" shows the components behave as specified against mocks and pass axe's jsdom rules. It does not show contrast, screen-reader behaviour, the real API contract, load time or cross-browser behaviour.
 
-**Failure and risk.** A token expires mid-session and the API returns 401: the UI shows a sign-in prompt (TC-FE-05). Control: `[[where 401 is handled: src/api/client.js or per page – confirm in the code]]`. Residual: refresh and return-to-page behaviour is untested end to end.
+**Failure and risk.** A token expires mid-session and the API returns 401: the UI shows a sign-in prompt (TC-FE-05). Control: the shared API client turns a 401 into the message "Your session has expired. Sign in again to continue." (`src/api/client.js`), and the shared `DataState.jsx` shows the unauthorised state for both 401 and 403, so every data page behaves the same. Residual: refresh and return-to-page behaviour is untested end to end.
 
 **Release readiness.** Honest frontend-level classification today: **Conditionally ready**. Core journeys and states are verified against mocks; the conditions are real-API integration, E2E on staging, and the browser, viewport and contrast audit.
