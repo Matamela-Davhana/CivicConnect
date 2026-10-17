@@ -40,7 +40,8 @@ function UserRow({ user, isSelf, onSave }) {
             disabled={isSelf || role === user.role}
             onClick={() => onSave(user.id, { role }, `Role updated for ${user.name}.`)}
           >
-            Save role<span className="visually-hidden"> for {user.name}</span>
+            Save role{' '}
+            <span className="visually-hidden">for {user.name}</span>
           </button>
           <button
             type="button"
@@ -50,8 +51,8 @@ function UserRow({ user, isSelf, onSave }) {
               onSave(user.id, { active: !user.active }, `${user.name} was ${user.active ? 'deactivated' : 'reactivated'}.`)
             }
           >
-            {user.active ? 'Deactivate' : 'Reactivate'}
-            <span className="visually-hidden"> {user.name}</span>
+            {user.active ? 'Deactivate' : 'Reactivate'}{' '}
+            <span className="visually-hidden">{user.name}</span>
           </button>
         </div>
       </td>

@@ -101,8 +101,8 @@ export default function CategoriesPanel() {
                     <td>{category.active ? 'Available to residents' : 'Deactivated'}</td>
                     <td>
                       <button type="button" className="btn btn--secondary btn--small" onClick={() => toggle(category)}>
-                        {category.active ? 'Deactivate' : 'Reactivate'}
-                        <span className="visually-hidden"> {category.name}</span>
+                        {category.active ? 'Deactivate' : 'Reactivate'}{' '}
+                        <span className="visually-hidden">{category.name}</span>
                       </button>
                     </td>
                   </tr>

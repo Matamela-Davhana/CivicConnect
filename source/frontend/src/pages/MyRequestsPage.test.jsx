@@ -22,7 +22,7 @@ describe('MyRequestsPage states', () => {
     expect(screen.getByRole('status')).toHaveTextContent(/loading your requests/i)
     expect(await screen.findByRole('link', { name: 'CC-0001' })).toHaveAttribute('href', '/requests/1')
     expect(screen.getByText('In progress')).toBeInTheDocument()
-    expect(screen.getByText('Submitted')).toBeInTheDocument()
+    expect(screen.getByText('Submitted', { selector: '.badge' })).toBeInTheDocument()
   })
 
   it('has no accessibility violations once loaded', async () => {

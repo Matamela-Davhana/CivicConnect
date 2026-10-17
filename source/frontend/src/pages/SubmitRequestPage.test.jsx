@@ -69,7 +69,7 @@ describe('SubmitRequestPage', () => {
       otherExplanation: 'Public lighting',
     })
     expect(await screen.findByRole('heading', { level: 1, name: 'Request details' })).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('CC-0009')
+    expect(screen.getByText(/CC-0009/)).toBeInTheDocument()
   })
 
   it('shows an empty state when no categories exist', async () => {

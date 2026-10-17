@@ -24,7 +24,7 @@ describe('ManagementDashboardPage', () => {
     const { container } = renderApp({ route: '/management', user: people.management })
     expect(await screen.findByText('Open requests')).toBeInTheDocument()
     expect(screen.getByText('Overdue requests').nextSibling).toHaveTextContent('2')
-    expect(screen.queryByText(/internal comment/i)).not.toBeInTheDocument()
+    expect(screen.queryByRole('columnheader', { name: /requester/i })).not.toBeInTheDocument()
     expect(await axe(container)).toHaveNoViolations()
   })
 

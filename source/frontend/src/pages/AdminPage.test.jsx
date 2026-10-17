@@ -29,14 +29,14 @@ describe('AdminPage', () => {
 
   it('has no accessibility violations', async () => {
     const { container } = renderApp({ route: '/admin', user: people.admin })
-    await screen.findByText('Sipho Dlamini')
+    await screen.findByRole('rowheader', { name: 'Sipho Dlamini' })
     await screen.findByText('Available to residents')
     expect(await axe(container)).toHaveNoViolations()
   })
 
   it('stops administrators changing their own role or status', async () => {
     renderApp({ route: '/admin', user: people.admin })
-    await screen.findByText('Sipho Dlamini')
+    await screen.findByRole('rowheader', { name: 'Sipho Dlamini' })
     expect(screen.getByLabelText('Role for Naledi Khumalo')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Deactivate Naledi Khumalo' })).toBeDisabled()
   })
