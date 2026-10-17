@@ -7,7 +7,7 @@ import { usePageTitle } from '../hooks/usePageTitle'
 
 function BreakdownTable({ caption, label, rows, total }) {
   return (
-    <div className="table-wrap" role="region" aria-label={caption} tabIndex={0}>
+   <div className="table-wrap" role="region" aria-label={`${caption} table`} tabIndex={0}>
       <table>
         <caption className="visually-hidden">{caption}</caption>
         <thead>

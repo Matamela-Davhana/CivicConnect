@@ -84,7 +84,7 @@ export default function CategoriesPanel() {
         }
       >
         {(list) => (
-          <div className="table-wrap" role="region" aria-label="Request categories" tabIndex={0}>
+          <div className="table-wrap" role="region" aria-label="Request categories table" tabIndex={0}>
             <table>
               <caption className="visually-hidden">Request categories</caption>
               <thead>

@@ -142,7 +142,7 @@ export default function UsersPanel({ currentUserId }) {
         }
       >
         {(list) => (
-          <div className="table-wrap" role="region" aria-label="User accounts" tabIndex={0}>
+          <div className="table-wrap" role="region" aria-label="User accounts table" tabIndex={0}>
             <table>
               <caption className="visually-hidden">User accounts</caption>
               <thead>
