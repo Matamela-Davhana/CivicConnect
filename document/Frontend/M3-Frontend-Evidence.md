@@ -56,7 +56,7 @@ Common to all records: **Level** component/page test (Vitest + React Testing Lib
 | TC-FE-11 | routing > makes the skip link the first keyboard stop and targets `<main>` | NFR-005, ASR-07 | Keyboard users forced through navigation | Black-box functional (accessibility) | Page rendered; Tab pressed once | Skip link focused first; target is `main` | Pass | Structure in jsdom only. Visible focus styling and real browsers untested. |
 | TC-FE-12 | AdminPage > has no accessibility violations | NFR-005 | Regression guard for DEF-FE-01 | Static a11y scan (jest-axe), regression | Users and categories loaded | No axe violations | Pass | Axe in jsdom does not run colour-contrast checks (TD-FE-01). |
 
-**Contribution to the team minimums.** Unit/component and black-box counts are met from this table. Negative/unauthorised (≥3): TC-FE-02, 03, 04, 05, 07, 09. High-priority (≥5): TC-FE-01, 02, 03, 06, 07. Techniques shown: equivalence partitioning (TC-FE-02), decision table (TC-FE-01); BVA only if TC-FE-10 data is confirmed. **Not yet covered by the frontend:** API/integration (≥3) and E2E/system (≥2). These need the real API and a deployed build (section 8).
+**Contribution to the team minimums.** Unit/component and black-box counts are met from this table. Negative/unauthorised (≥3): TC-FE-02, 03, 04, 05, 07, 09. High-priority (≥5): TC-FE-01, 02, 03, 06, 07. Techniques shown: equivalence partitioning (TC-FE-02), decision table (TC-FE-01); BVA only if TC-FE-10 data is confirmed. **Not yet covered by the frontend:** API/integration (≥3) and E2E/system (≥2). These need the real API and a deployed build (section 7).
 
 ---
 
