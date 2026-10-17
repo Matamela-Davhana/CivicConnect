@@ -3,7 +3,7 @@
 **Scope:** Frontend Developer / UI-UX Designer (Role 3) only. Code: `source/frontend`.
 **Branch:** [`feature/frontend-ui`](https://github.com/Matamela-Davhana/CivicConnect/tree/feature/frontend-ui), latest commit [`0fdf3d1`](https://github.com/Matamela-Davhana/CivicConnect/commit/0fdf3d1) (17 Oct 2026).
 **Last full run:** `npm test` 9 files, **39 passed / 0 failed**; `npm run lint` clean; `npm run build` succeeds (17 Oct 2026, 21:33).
-**Pull request:** `[[PR link – add after opening the PR]]`
+**Pull request:** [PR #20](https://github.com/Matamela-Davhana/CivicConnect/pull/20) (review requested from two teammates)
 
 > Placeholders left in `[[double brackets]]` are things that do not exist yet or that only the code or the team can answer. Replace them before the PED PDF is produced. This file is the repo evidence; PED v3.0 should link to it, not copy it.
 
@@ -56,7 +56,7 @@ Common to all records: **Level** component/page test (Vitest + React Testing Lib
 | TC-FE-11 | routing > makes the skip link the first keyboard stop and targets `<main>` | NFR-005, ASR-07 | Keyboard users forced through navigation | Black-box functional (accessibility) | Page rendered; Tab pressed once | Skip link focused first; target is `main` | Pass | Structure in jsdom only. Visible focus styling and real browsers untested. |
 | TC-FE-12 | AdminPage > has no accessibility violations | NFR-005 | Regression guard for DEF-FE-01 | Static a11y scan (jest-axe), regression | Users and categories loaded | No axe violations | Pass | Axe in jsdom does not run colour-contrast checks (TD-FE-01). |
 
-**Contribution to the team minimums.** Unit/component and black-box counts are met from this table. Negative/unauthorised (≥3): TC-FE-02, 03, 04, 05, 07, 09. High-priority (≥5): TC-FE-01, 02, 03, 06, 07. Techniques shown: equivalence partitioning (TC-FE-02), decision table (TC-FE-01); BVA only if TC-FE-10 data is confirmed. **Not yet covered by the frontend:** API/integration (≥3) and E2E/system (≥2). These need the real API and a deployed build (section 7).
+**Contribution to the team minimums.** Unit/component and black-box counts are met from this table. Negative/unauthorised (≥3): TC-FE-02, 03, 04, 05, 07, 09. High-priority (≥5): TC-FE-01, 02, 03, 06, 07. Techniques shown: equivalence partitioning (TC-FE-02), decision table (TC-FE-01); BVA only if TC-FE-10 data is confirmed. **Not yet covered by the frontend:** API/integration (≥3) and E2E/system (≥2). These need the real API and a deployed build (section 8).
 
 ---
 
@@ -115,8 +115,8 @@ Quality lesson: two of the first-run failures were defects in the tests, not the
 
 | Date | Member | Tool | Engineering task | AI contribution | Verification | Decision | Issues found |
 |------|--------|------|------------------|-----------------|--------------|----------|--------------|
-| 17 October 2026 | `[[member name]]` | Claude | Frontend construction: router, layout, 7 pages, data states, tests | Generated the initial frontend structure, pages and tests | Ran `npm test`, `npm run lint`, `npm run build`; reviewed the changes; PR review `[[PR link]]` | Used after human review and controlled peer approval | First run: 6 test failures and 1 lint error; corrected in `df6cdd7` |
-| 17 October 2026 | `[[member name]]` | Claude | Accessibility defect diagnosis (axe `landmark-unique`) | Explained the cause and proposed unique wrapper labels | Re-ran the suite (39/39), reviewed the 3 changed files | Accepted after verification | Initial advice guessed one file's label text; corrected from the real source |
+| 17 October 2026 | Jininy Nkomo | Claude | Frontend construction: router, layout, 7 pages, data states, tests | Generated the initial frontend structure, pages and tests | Ran `npm test`, `npm run lint`, `npm run build`; reviewed the changes; PR review [PR #20](https://github.com/Matamela-Davhana/CivicConnect/pull/20) | Used after human review and controlled peer approval | First run: 6 test failures and 1 lint error; corrected in `df6cdd7` |
+| 17 October 2026 | Jininy Nkomo | Claude | Accessibility defect diagnosis (axe `landmark-unique`) | Explained the cause and proposed unique wrapper labels | Re-ran the suite (39/39), reviewed the 3 changed files | Accepted after verification | Initial advice guessed one file's label text; corrected from the real source |
 
 ---
 
@@ -145,7 +145,7 @@ Interpretation: this is a build-size measurement only. It does not show load tim
 
 ## 7. PED v3.0 text for the frontend (paste into the existing PED; evidence-index style)
 
-**Section 4, Construction/configuration.** The frontend is a React single-page application (Vite, `react-router-dom`) in `source/frontend`, built on `feature/frontend-foundation` then `feature/frontend-ui` and integrated through PR `[[PR link]]`. It calls the backend only through HTTP endpoints, as PED section 5.5 requires. The API base URL comes from `[[env variable name]]`; no secrets are committed.
+**Section 4, Construction/configuration.** The frontend is a React single-page application (Vite, `react-router-dom`) in `source/frontend`, built on `feature/frontend-foundation` then `feature/frontend-ui` and integrated through PR [PR #20](https://github.com/Matamela-Davhana/CivicConnect/pull/20). It calls the backend only through HTTP endpoints, as PED section 5.5 requires. The API base URL comes from `[[env variable name]]`; no secrets are committed.
 
 **Section 5, CI and automated verification.** CI runs `npm ci`, `npm run lint`, `npm test` and `npm run build` in `source/frontend` (`[[workflow link]]`). A failure in any step blocks the merge. A green run shows the frontend compiles and passes its component and accessibility tests against a mocked API. It does not show colour-contrast compliance or agreement with the real backend.
 
@@ -163,7 +163,7 @@ Interpretation: this is a build-size measurement only. It does not show load tim
 
 ## 8. Remaining work for Role 3 (in order)
 
-1. Get the PR approved by **two** non-author teammates with real review comments; link the PR above.
+1. Get PR #20 approved by **two** non-author teammates with real review comments (review has been requested from Matamela-Davhana and mqadi11).
 2. Resolve section 0 with the team (FR numbering) and the placeholders that remain.
 3. Add tests for G-FE-01 (staff actions) and G-FE-02 (login routing for staff, management, admin).
 4. Agree the API contract with the backend owner; write at least 3 integration tests and 2 E2E journeys (sign in → submit → see it in My requests with a reference; staff sign in → open request → change status) and run them against staging.
