@@ -75,8 +75,9 @@ password and unknown-user cases. It does not exercise the browser or request lif
 
 ## Outstanding release blockers
 
-- Real PostgreSQL My Requests isolation suite awaits the user's terminal run;
-  login integration has passed as documented above.
+- The user-run PostgreSQL login and My Requests suites both passed (14 reported
+  results including parent tests, zero failures/skips), as shown in the subsequent
+  terminal screenshot. Full browser verification remains outstanding.
 - Backend API journey test:e2e and browser test:e2e suites/commands remain absent.
   The existing CI contract and quality gate intentionally continue to fail.
 - My Requests list alignment is implemented locally (details below), pending real DB verification.
@@ -115,6 +116,14 @@ password and unknown-user cases. It does not exercise the browser or request lif
   Cleanup rolls the transaction back and verifies the temporary accounts are gone.
 - The local Test-LocalLogin.ps1 helper accepts -IncludeMyRequests to run this new
   suite alongside the previously passing login checks. No sample seed rerun is needed.
+- User supplied a successful run of that combined command: all login checks and
+  five My Requests checks passed, including rollback cleanup. This is user-run
+  PostgreSQL evidence, distinct from assistant-run stub tests.
+- Prepared local Start-BrowserReview.ps1/browser-review.cjs helpers (outside the
+  repository) to start this checkout's loopback API and Vite UI. Credentials pass
+  privately through stdin, are not written to a file, and are excluded from the
+  frontend child process. Helpers passed syntax checks; actual browser startup
+  and requester login/list display still await the user.
 - Request detail authorization, other API gaps and complete browser journeys are
   still outstanding. Do not treat the list fix as a release/security approval.
 
