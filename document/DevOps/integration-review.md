@@ -46,14 +46,18 @@ Frontend axe tests still report the jsdom canvas limitation: this does not estab
 colour-contrast compliance. An initial frontend install hit a Windows file-access
 error; retry completed and the above checks used Node 24 explicitly.
 
-## Next manual checkpoint: local PostgreSQL
+## Local PostgreSQL progress
 
-The user's existing localhost:5432 database `civicconnect_local_review` was not
-modified by this work. Its last user-confirmed state was 5 tables, 7 categories,
-0 users. An attempt to initialize a separate temporary PostgreSQL cluster stalled
+The user applied the corrected seed to localhost:5432 database
+`civicconnect_local_review`: their terminal screenshot confirms COMMIT after
+inserting 4 accounts, 3 requests, 1 history record and 2 comments. Their subsequent
+terminal screenshot confirms the real PostgreSQL login suite passed: 7 checks plus
+the parent test (8 reported results), zero failed or skipped. This is user-run
+evidence, not a test executed by the assistant. No password was shared or saved.
+An attempt to initialize a separate temporary PostgreSQL cluster stalled
 in this execution environment and was cancelled before startup or test execution.
 
-Run psql with `-X`, `-W`, `-v ON_ERROR_STOP=1`, database
+For a fresh local test database only, run psql with `-X`, `-W`, `-v ON_ERROR_STOP=1`, database
 `civicconnect_local_review`, and `-f source/backend/migrations/seed.sql` from this
 checkout. Do not reapply the initial schema to the existing database. If the seed
 reports that users already exist, stop and inspect; do not delete/reset them.
@@ -71,11 +75,11 @@ password and unknown-user cases. It does not exercise the browser or request lif
 
 ## Outstanding release blockers
 
-- Real PostgreSQL login suite has not run yet; user credentials are deliberately not stored.
+- Real PostgreSQL My Requests isolation suite awaits the user's terminal run;
+  login integration has passed as documented above.
 - Backend API journey test:e2e and browser test:e2e suites/commands remain absent.
   The existing CI contract and quality gate intentionally continue to fail.
-- Frontend requests /api/requests/mine, but backend list is GET /api/requests;
-  /mine currently reaches the UUID detail handler instead.
+- My Requests list alignment is implemented locally (details below), pending real DB verification.
 - Frontend needs GET /api/categories, /api/staff/assignees, /api/management/summary,
   admin GET/PATCH endpoints and POST /api/requests/:id/actions; current backend
   routes do not provide these interfaces. Do not hide these failures in the UI.
@@ -87,6 +91,32 @@ password and unknown-user cases. It does not exercise the browser or request lif
   earlier forced dependency changes. Do not overwrite her uncommitted test work.
 - No fresh GitHub CI run, Render deployment, full browser journey, performance or
   rollback evidence exists for this combined branch.
+
+## My Requests follow-up
+
+- Added GET /api/requests/mine before the /:id route; retained the legacy GET
+  /api/requests response unchanged for compatibility.
+- The new list is requester-only and filters by the verified token's user ID,
+  never an owner ID supplied in the URL. It returns only id, reference, category,
+  status, createdAt and updatedAt, with deterministic newest-first ordering.
+- updatedAt uses the latest submission, status-history or public-entry timestamp.
+  Internal comment timestamps/content are excluded. This does not claim to track
+  changes that the current backend does not record in those tables.
+- Database errors return a generic JSON message compatible with the frontend retry state.
+- Backend lint and all 21 Node unit/contract results passed after the change.
+  All 6 frontend MyRequestsPage component tests also passed (the existing jsdom
+  canvas/contrast limitation remains).
+  An initial HTTP test attempt was blocked by environment network permissions;
+  rerun after granting localhost access passed. Database-stub tests do not prove SQL isolation.
+- Added a real PostgreSQL test with three temporary requester accounts and three
+  requests. App queries use the same real transaction as the fixtures; no SQL is
+  mocked. The test checks ordering, exact response fields, cross-requester isolation,
+  ignored query-string identity, empty lists, visible update dates and fallback dates.
+  Cleanup rolls the transaction back and verifies the temporary accounts are gone.
+- The local Test-LocalLogin.ps1 helper accepts -IncludeMyRequests to run this new
+  suite alongside the previously passing login checks. No sample seed rerun is needed.
+- Request detail authorization, other API gaps and complete browser journeys are
+  still outstanding. Do not treat the list fix as a release/security approval.
 
 ## AI use
 
