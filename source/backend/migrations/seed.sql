@@ -3,10 +3,10 @@
 -- =========
 -- hash passwords pre-computed "password123" for all
 INSERT INTO users (name, email, password_hash, role) VALUES
-    ('Max Div', 'admin@example.com', '$2b$10$hashedpassword', 'admin'),
-    ('Sam Sum', 'staff@example.com', '$2b$10$hashedpassword', 'staff'),
-    ('Ben Ten', 'management@example.com', '$2b$10$hashedpassword', 'management'),
-    ('Tom Hen', 'requester@example.com', '$2b$10$hashedpassword', 'requester');
+    ('Max Div', 'admin@example.com', 'password123', 'admin'),
+    ('Sam Sum', 'staff@example.com', 'password123', 'staff'),
+    ('Ben Ten', 'management@example.com', 'password123', 'management'),
+    ('Tom Hen', 'requester@example.com', 'password123', 'requester');
 
 -- ==================
 -- SERVICE_REQUESTS

@@ -13,8 +13,23 @@ router.post('/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-  res.json({ token, role: user.role, user: { id: user.id, name: user.name, email: user.email } });
+  const token = jwt.sign(
+    { id: user.id, role: user.role },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  // Updated response to include nested user.role
+  res.json({
+    token,
+    role: user.role, // top-level role
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role // nested role for contract compatibility
+    }
+  });
 });
 
 module.exports = router;
