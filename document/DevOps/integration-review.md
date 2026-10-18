@@ -81,8 +81,9 @@ password and unknown-user cases. It does not exercise the browser or request lif
 - Backend API journey test:e2e and browser test:e2e suites/commands remain absent.
   The existing CI contract and quality gate intentionally continue to fail.
 - My Requests passed user-run PostgreSQL and browser checks (details below).
-- Frontend still needs /api/management/summary and admin GET/PATCH endpoints.
-  Staff interfaces are now implemented locally; real database/browser checks are pending below.
+- Frontend still needs admin GET/PATCH endpoints. Staff interfaces passed the user-run
+  database/browser checks below. Management summary is now implemented locally, with
+  its real database/browser checks still pending.
 - Request details passed user-run PostgreSQL and owner browser checks (below).
   Submission subsequently passed user-run real DB and browser checks (below).
   Other backend input validation and safe response fields still require review (e.g. admin
@@ -230,13 +231,48 @@ not an automated browser suite or proof of other journeys.
 - Added rollback-only PostgreSQL suite for queue/filter/minimal fields, roles, invalid
   acceptance dates, injected history/entry SQL failures, acceptance, stale versions,
   staff-only assignment, date audits, comment privacy, all lifecycle stages, rejection,
-  terminal-state restrictions and the retired write route. Syntax checked, NOT yet run.
+  terminal-state restrictions and the retired write route. The user's subsequent terminal
+  screenshot shows all 53 combined PostgreSQL results passed, zero failures/skips.
   The savepoint adapter does not prove durable commits or simultaneous multi-connection races.
-- Test-LocalLogin.ps1 now accepts -IncludeStaff alongside the prior flags. Run privately,
-  then restart the browser review server and sign in as staff@example.com for a manual
-  lifecycle on a labelled local test request. Do not reapply migrations or seeds.
+- The user then supplied staff browser screenshots and confirmations: acceptance and date,
+  assignment, public progress, staff-only comment hidden from requester, resolution, closure,
+  queue/status/reference filters, rejected request/reason visible to its owner, target-date
+  change, hold/resume and stale-tab conflict with retained draft/refresh/retry all worked.
+  These are user-reported manual checks, not assistant-observed browser automation or
+  a claim of comprehensive simultaneous-load testing. Local test requests were retained.
+- Test-LocalLogin.ps1 accepts -IncludeStaff alongside the prior flags. No migrations or
+  seeds need to be reapplied for these checks.
 - No push, PR approval, deployment or green CI claim. Management/admin, full browser/API
   journey automation, root dependency reconciliation and operational evidence remain open.
+
+## Management summary follow-up
+
+- Added management-only GET /api/management/summary matching the existing UI. Preserved
+  the legacy overview response and added safe retry errors to both routes. Other roles
+  and unauthenticated callers are denied before SQL; query-string roles/IDs/include flags
+  do not expand or filter the response.
+- Aggregation happens in PostgreSQL and selects no requester, assignee, reference,
+  description, explanation, history or comment content. One SQL statement returns a
+  consistent snapshot of numeric open/overdue/completed totals and status/category counts.
+- Open excludes resolved/closed/rejected; completed means resolved plus closed. Rejected
+  requests remain in breakdowns. Overdue is open with target date strictly before today
+  in Africa/Johannesburg; due today, null dates and terminal states are excluded. Disabled
+  categories still contribute their historical requests. UI now explains these definitions.
+- Updated component tests to real lifecycle labels and added rejected-only and retry checks.
+  Assistant-run verification: backend lint and 112 unit/contract results passed; frontend
+  lint, 58 tests in 10 files and build passed. Existing jsdom canvas/contrast limitation
+  remains. Unit database stubs do not establish correctness of SQL aggregate calculations.
+- Added a PostgreSQL suite using connection-local temporary tables cloned from production
+  column definitions, allowing empty/all-status/date-boundary/privacy/refresh/rejected-only
+  cases without modifying existing application data. Database session timezone is deliberately
+  different from the reporting timezone. Fixture writes explicitly target pg_temp, and
+  rollback cleanup checks the temporary request table is gone. Test JWTs exercise real
+  authentication middleware; this suite is not a login or production constraint test.
+- Management PostgreSQL suite and live browser review are NOT yet run. The secure helper
+  accepts -IncludeManagement; run it with the earlier suite flags, then restart the review
+  server and sign in as management@example.com. No seed or migration rerun is needed.
+- No remote push, deployment or full CI claim. Admin, browser/API journey automation,
+  root dependency reconciliation and operational evidence remain outstanding.
 
 ## AI use
 

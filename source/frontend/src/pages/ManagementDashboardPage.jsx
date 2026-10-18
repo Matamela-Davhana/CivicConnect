@@ -79,6 +79,8 @@ export default function ManagementDashboardPage() {
                     <dd>{summary.completed}</dd>
                   </div>
                 </dl>
+                <p>Completed means resolved or closed. Rejected requests are shown separately in the status breakdown.</p>
+                <p>Overdue means an open request whose target date has passed in South African time. Requests due today are not overdue.</p>
               </section>
               <section aria-labelledby="status-heading" className="card">
                 <h2 id="status-heading">Requests by status</h2>

@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api'
@@ -17,13 +18,18 @@ describe('ManagementDashboardPage', () => {
       byStatus: [
         { status: 'submitted', count: 3 },
         { status: 'in_progress', count: 4 },
-        { status: 'completed', count: 11 },
+        { status: 'resolved', count: 5 },
+        { status: 'closed', count: 6 },
       ],
       byCategory: [{ category: 'Water', count: 18 }],
     })
     const { container } = renderApp({ route: '/management', user: people.management })
     expect(await screen.findByText('Open requests')).toBeInTheDocument()
     expect(screen.getByText('Overdue requests').nextSibling).toHaveTextContent('2')
+    expect(screen.getByText('Open requests').nextSibling).toHaveTextContent('7')
+    expect(screen.getByText('Completed requests').nextSibling).toHaveTextContent('11')
+    expect(screen.getByRole('rowheader', { name: 'Resolved' })).toBeInTheDocument()
+    expect(screen.getByRole('rowheader', { name: 'Closed' })).toBeInTheDocument()
     expect(screen.queryByRole('columnheader', { name: /requester/i })).not.toBeInTheDocument()
     expect(await axe(container)).toHaveNoViolations()
   })
@@ -32,5 +38,24 @@ describe('ManagementDashboardPage', () => {
     api.management.summary.mockResolvedValue({ open: 0, overdue: 0, completed: 0, byStatus: [{ status: 'submitted', count: 0 }], byCategory: [] })
     renderApp({ route: '/management', user: people.management })
     expect(await screen.findByRole('heading', { name: /no requests to summarise/i })).toBeInTheDocument()
+  })
+
+  it('shows rejected-only data rather than an empty dashboard and calculates its share', async () => {
+    api.management.summary.mockResolvedValue({ open: 0, overdue: 0, completed: 0,
+      byStatus: [{ status: 'rejected', count: 2 }], byCategory: [{ category: 'Other', count: 2 }] })
+    renderApp({ route: '/management', user: people.management })
+    expect(await screen.findByRole('rowheader', { name: 'Rejected' })).toBeInTheDocument()
+    expect(screen.getAllByText('100%')).toHaveLength(2)
+    expect(screen.getByText('Completed requests').nextSibling).toHaveTextContent('0')
+  })
+
+  it('offers retry when loading fails', async () => {
+    const user = userEvent.setup()
+    api.management.summary.mockRejectedValueOnce(new Error('Could not load the management summary.'))
+      .mockResolvedValue({ open: 1, overdue: 0, completed: 0, byStatus: [{ status: 'submitted', count: 1 }], byCategory: [] })
+    renderApp({ route: '/management', user: people.management })
+    await user.click(await screen.findByRole('button', { name: /try again/i }))
+    expect(await screen.findByText('Open requests')).toBeInTheDocument()
+    expect(api.management.summary).toHaveBeenCalledTimes(2)
   })
 })

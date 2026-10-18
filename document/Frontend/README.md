@@ -86,6 +86,21 @@ PUT /staff/requests/:id/status route returns 410 instead of bypassing these rule
 Queue `q` is a literal case-insensitive reference substring (not a wildcard pattern),
 and category is a UUID. Queue/assignee data includes only fields needed by the staff UI.
 
+### Management summary (local integration, 18 October)
+
+GET /management/summary is management-only. It returns numeric counts and aggregate
+status/category labels; no request IDs/references, people, descriptions or comments.
+Open includes submitted/accepted/assigned/in_progress/on_hold. Completed includes
+resolved/closed, not rejected. Overdue is a subset of open with a non-null target date
+strictly before today's date in Africa/Johannesburg, independent of the database session
+timezone. Requests due today are not overdue. The screen explains these definitions.
+All requests, including rejected ones and requests in now-inactive categories, contribute
+to the breakdowns and percentage denominators. Only groups with requests appear, in
+lifecycle order for statuses and alphabetical category order. An empty dataset returns
+zero totals and empty arrays. A single SQL statement supplies all figures from one
+snapshot; refreshing the page requests current figures. No live polling is implied.
+The legacy /management/overview keeps its aggregate-only response for compatibility.
+
 Security note: the server must enforce ownership and strip internal timeline entries for requesters. The UI hides them as well, but UI checks are not access control.
 
 ## Commands
