@@ -13,6 +13,9 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/requests', require('./routes/requests'));
 app.use('/api/staff', require('./routes/staff'));
+
+// Export without opening a port; startup is configured separately.
+module.exports = app;
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/management', require('./routes/management'));
 
