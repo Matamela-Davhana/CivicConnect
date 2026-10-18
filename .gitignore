@@ -5,6 +5,20 @@ node_modules/
 # Environment variables
 .env
 **/.env
+.env.*
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Local databases, credentials and generated evidence
+artifacts/
+**/artifacts/
+coverage/
+**/coverage/
+playwright-report/
+**/playwright-report/
+test-results/
+**/test-results/
 
 # Build output
 dist/
