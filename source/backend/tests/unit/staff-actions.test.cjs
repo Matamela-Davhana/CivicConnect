@@ -109,11 +109,12 @@ test('staff HTTP routes reject non-staff, validate filters and hide diagnostics'
   process.env.JWT_SECRET = 'disposable-staff-contract-only';
   let calls = [];
   let fail = false;
+  let queuePayload = '[]';
   require.cache[dbPath] = { id: dbPath, filename: dbPath, loaded: true, exports: {
     async query(sql, params) {
       calls.push({ sql, params });
       if (fail) throw new Error('private SQL diagnostic');
-      return { rows: [] };
+      return { rows: sql.includes('json_agg(queue)') ? [{ payload: queuePayload }] : [] };
     },
     async connect() { throw new Error('private connection diagnostic'); },
   } };
@@ -145,6 +146,19 @@ test('staff HTTP routes reject non-staff, validate filters and hide diagnostics'
     assert.match(call.sql, /strpos\(lower\(r.reference\), lower\(\$3::text\)\)/);
     assert.match(call.sql, /ORDER BY r.submitted_at DESC, r.id DESC/);
     assert.doesNotMatch(call.sql, /SELECT \*|password_hash|email/);
+    assert.match(call.sql, /COALESCE\(json_agg\(queue\), '\[\]'::json\)::text AS payload/);
+  });
+  await t.test('pre-encoded queue is JSON, not a double-encoded string or HTML', async () => {
+    const rows = [{ id, reference: 'T-quote', category: 'Other', status: 'submitted',
+      createdAt: '2026-10-18T12:34:56.123Z', targetDate: null,
+      requester: { id: staffId, name: 'Quote " slash \\ newline\n <script> & café' }, assignee: null }];
+    queuePayload = JSON.stringify(rows);
+    try {
+      const response = await request('/staff/requests');
+      assert.equal(response.status, 200);
+      assert.match(response.headers.get('content-type'), /^application\/json; charset=utf-8$/);
+      assert.equal(await response.text(), queuePayload);
+    } finally { queuePayload = '[]'; }
   });
   await t.test('invalid filters do not reach SQL', async () => {
     const before = calls.length;

@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           package-manager-cache: false
-      - run: node --test tools/devops/helpers.test.mjs tools/devops/e2e-safety.test.cjs
+      - run: node --test tools/devops/helpers.test.mjs tools/devops/e2e-safety.test.cjs tools/m3/checks.test.mjs
       - name: Record the exact code under test
         env:
           TESTED_SHA: ${{ github.sha }}
