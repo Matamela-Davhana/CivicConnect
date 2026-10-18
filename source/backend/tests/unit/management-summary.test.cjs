@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const { SUMMARY_SQL } = require('../../services/management-summary');
 
 test('management summary HTTP contract (database stub)', async (t) => {
+  require('../helpers/stub-account-sessions.cjs').stubAccountSessions(t);
   const dbPath = require.resolve('../../db');
   const previousDb = require.cache[dbPath];
   const previousSecret = process.env.JWT_SECRET;

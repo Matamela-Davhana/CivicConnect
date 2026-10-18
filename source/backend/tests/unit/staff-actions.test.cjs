@@ -102,6 +102,7 @@ test('staff actions transaction contract (database stub)', async (t) => {
 });
 
 test('staff HTTP routes reject non-staff, validate filters and hide diagnostics', async (t) => {
+  require('../helpers/stub-account-sessions.cjs').stubAccountSessions(t);
   const dbPath = require.resolve('../../db');
   const previous = require.cache[dbPath];
   const previousSecret = process.env.JWT_SECRET;
@@ -154,7 +155,7 @@ test('staff HTTP routes reject non-staff, validate filters and hide diagnostics'
   });
   await t.test('assignee lookup selects staff and only id/name', async () => {
     assert.equal((await request('/staff/assignees')).status, 200);
-    assert.equal(calls.at(-1).sql, "SELECT id, name FROM users WHERE role='staff' ORDER BY name, id");
+    assert.equal(calls.at(-1).sql, "SELECT id, name FROM users WHERE role='staff' AND active=true ORDER BY name, id");
   });
   await t.test('legacy status write cannot bypass concurrency protection', async () => {
     const before = calls.length;

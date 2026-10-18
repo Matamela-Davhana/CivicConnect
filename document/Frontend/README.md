@@ -101,6 +101,44 @@ zero totals and empty arrays. A single SQL statement supplies all figures from o
 snapshot; refreshing the page requests current figures. No live polling is implied.
 The legacy /management/overview keeps its aggregate-only response for compatibility.
 
+### Admin accounts and categories (local integration, 18 October)
+
+Apply the additive 002_account_state.sql migration before starting this version or running
+integration tests. It adds users.active (default true) and token_version (default zero),
+plus case-insensitive trimmed email/category-name uniqueness indexes. Existing duplicate
+values cause migration failure/rollback; inspect them with the owner, never silently merge
+or delete data. For a fresh disposable database apply 001, then 002, then the guarded seed.
+For the existing local review database apply ONLY 002, with ON_ERROR_STOP and a single
+transaction; do not rerun 001 or seed. CI setup now applies both numbered migrations.
+
+GET /admin/users returns only id/name/email/role/active. POST accepts name (1–150 trimmed
+characters), email (valid shape, max 255, trimmed/lowercased), role and an initial password
+(at least 12 characters, at most 72 UTF-8 bytes; no password trimming). The user explicitly
+selected an initial-password field for LOCAL TESTING. It is masked, never stored in frontend
+session storage, and cleared after success. Passwords are cost-12 bcrypt hashes and neither
+passwords nor hashes/session versions appear in admin API responses. New accounts are active.
+No invitations, delivery mechanism, password reset or forced first-login password change exists;
+do not treat this local account-provisioning flow as deployment-ready.
+
+PATCH /admin/users/:id accepts role and/or boolean active only. Self changes are denied
+server-side as well as disabled in the UI. Admin writes are serialized with a transaction
+advisory lock; the acting admin's current role, active state and session version are rechecked
+inside that transaction, and at least one active admin must remain. Real changes increment
+token_version; a no-op does not. Login rejects inactive users. Authorized requests check the
+current account state: role changes/deactivation invalidate prior tokens, and reactivation
+does not make those old tokens valid again. Existing old-format tokens require a fresh login.
+Requests already authorized and in flight are not retroactively cancelled. Cached browser
+content is not remotely erased. Disabled/non-staff accounts are absent from the assignee list
+and cannot be newly assigned, while existing assignment/history relationships are preserved.
+
+GET /admin/categories includes inactive categories, with only id/name/active. POST accepts
+a trimmed 1–50 character name. PATCH accepts boolean active only; no deletion/rename path.
+Inactive categories disappear from submission choices and are rejected by submission validation,
+but their existing requests and management totals remain. Both users and categories reject
+case-insensitive duplicates with 409; invalid forms use 422, missing targets 404, and unexpected
+errors return safe retry messages. Account/category administrative changes do not yet have a
+dedicated admin audit-history screen or audit table; request status/comment audits are unchanged.
+
 Security note: the server must enforce ownership and strip internal timeline entries for requesters. The UI hides them as well, but UI checks are not access control.
 
 ## Commands

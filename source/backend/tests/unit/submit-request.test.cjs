@@ -87,6 +87,7 @@ test('reference collision retries a fresh transaction and is bounded', async () 
 });
 
 test('category and submission HTTP contracts with a database stub', async (t) => {
+  require('../helpers/stub-account-sessions.cjs').stubAccountSessions(t);
   const dbPath = require.resolve('../../db');
   const previous = require.cache[dbPath];
   const secret = process.env.JWT_SECRET;

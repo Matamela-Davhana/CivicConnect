@@ -37,12 +37,18 @@ test('management aggregates against PostgreSQL in temporary fixture tables', { t
   // This verifies aggregates, not production constraints or login credentials.
   await client.query('CREATE TEMP TABLE categories (LIKE public.categories INCLUDING DEFAULTS) ON COMMIT DROP');
   await client.query('CREATE TEMP TABLE service_requests (LIKE public.service_requests INCLUDING DEFAULTS) ON COMMIT DROP');
+  await client.query('CREATE TEMP TABLE users (LIKE public.users INCLUDING DEFAULTS) ON COMMIT DROP');
+  const identities = {};
+  for (const role of ['management', 'requester', 'staff', 'admin']) {
+    identities[role] = randomUUID();
+    await client.query("INSERT INTO pg_temp.users (id,name,email,password_hash,role) VALUES ($1,'Temporary account',$2,'not-used-for-login',$3)", [identities[role], `${role}@fixture.test`, role]);
+  }
   db.query = (...args) => client.query(...args);
   server = require('../../server').listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = `http://127.0.0.1:${server.address().port}/api/management/summary`;
   const read = async (role = 'management', suffix = '') => {
-    const response = await fetch(base + suffix, { headers: { Authorization: `Bearer ${jwt.sign({ id: randomUUID(), role }, process.env.JWT_SECRET)}` } });
+    const response = await fetch(base + suffix, { headers: { Authorization: `Bearer ${jwt.sign({ id: identities[role], role, tokenVersion: 0 }, process.env.JWT_SECRET)}` } });
     assert.equal(response.status, role === 'management' ? 200 : 403);
     return response.json();
   };

@@ -1,23 +1,33 @@
 const express = require('express');
-const bcrypt = require('bcrypt');
 const db = require('../db');
 const auth = require('../middleware/auth');
+const admin = require('../services/admin-management');
 const router = express.Router();
+router.use(auth('admin'));
 
-router.post('/users', auth('admin'), async (req, res) => {
-  const { name, email, password, role } = req.body;
-  const hashed = await bcrypt.hash(password, 10);
-  const result = await db.query(
-    'INSERT INTO users (name, email, password_hash, role) VALUES ($1,$2,$3,$4) RETURNING *',
-    [name, email, hashed, role]
-  );
-  res.json(result.rows[0]);
+function failure(res, error) {
+  if (error instanceof admin.AdminError) return res.status(error.status).json({ message: error.message });
+  if (error.code === '23505') return res.status(409).json({ message: 'That email address or category name already exists.' });
+  return res.status(500).json({ message: 'Could not complete the admin operation. Please refresh and try again.' });
+}
+router.get('/users', async (req, res) => {
+  try { res.json((await db.query(`SELECT ${admin.USER_FIELDS} FROM users ORDER BY name, id`)).rows); }
+  catch (error) { failure(res, error); }
 });
-
-router.post('/categories', auth('admin'), async (req, res) => {
-  const { name } = req.body;
-  const result = await db.query('INSERT INTO categories (name) VALUES ($1) RETURNING *', [name]);
-  res.json(result.rows[0]);
+router.get('/categories', async (req, res) => {
+  try { res.json((await db.query('SELECT id, name, active FROM categories ORDER BY name, id')).rows); }
+  catch (error) { failure(res, error); }
 });
-
+for (const [resource, create, update] of [
+  ['users', admin.createUser, admin.updateUser], ['categories', admin.createCategory, admin.updateCategory],
+]) {
+  router.post(`/${resource}`, async (req, res) => {
+    try { res.status(201).json(await create(db, req.body, req.user)); }
+    catch (error) { failure(res, error); }
+  });
+  router.patch(`/${resource}/:id`, async (req, res) => {
+    try { res.json(await update(db, req.params.id, req.body, req.user)); }
+    catch (error) { failure(res, error); }
+  });
+}
 module.exports = router;

@@ -75,7 +75,7 @@ async function applyStaffAction(db, id, body, actorId) {
         break;
       case 'assign': {
         if (!['accepted', 'assigned', 'in_progress', 'on_hold'].includes(row.status)) invalid('Accept the request before assigning it.');
-        const person = (await client.query("SELECT id, name FROM users WHERE id=$1 AND role='staff' FOR SHARE", [input.assigneeId])).rows[0];
+        const person = (await client.query("SELECT id, name FROM users WHERE id=$1 AND role='staff' AND active=true FOR SHARE", [input.assigneeId])).rows[0];
         if (!person) invalid('The selected staff member is not available.');
         assignee = person.id;
         if (row.status === 'accepted') status = 'assigned';

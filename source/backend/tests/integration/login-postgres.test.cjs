@@ -4,7 +4,7 @@ const { once } = require('node:events');
 const jwt = require('jsonwebtoken');
 
 // This suite only reads pre-seeded data. No database stubs or silent skips.
-// Run migrations/001_initial_schema.sql and migrations/seed.sql beforehand.
+// Fresh DB: run migrations 001, 002, then seed.sql. Existing DB: only apply 002.
 test('real PostgreSQL login integration', async (t) => {
   assert.ok(process.env.DATABASE_URL, 'Set DATABASE_URL to an isolated, seeded local test database');
   const target = new URL(process.env.DATABASE_URL);

@@ -16,13 +16,13 @@ test('frontend login contract with an isolated database stub', async (t) => {
   const roles = ['requester', 'staff', 'management', 'admin'];
   const users = roles.map((role, index) => ({
     id: index + 1, name: `Test ${role}`, email: `${role}@example.test`,
-    role, password_hash: passwordHash,
+    role, password_hash: passwordHash, active: true, token_version: 0,
   }));
   require.cache[dbPath] = {
     id: dbPath, filename: dbPath, loaded: true,
     exports: {
       async query(sql, params) {
-        assert.equal(sql, 'SELECT * FROM users WHERE email=$1');
+        assert.equal(sql, 'SELECT id, name, email, password_hash, role, active, token_version FROM users WHERE lower(btrim(email))=$1');
         return { rows: users.filter((user) => user.email === params[0]) };
       },
     },
@@ -72,6 +72,23 @@ test('frontend login contract with an isolated database stub', async (t) => {
     const response = await login('missing@example.test');
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), { error: 'Invalid credentials' });
+  });
+  await t.test('deactivated accounts cannot sign in and have the same error as a wrong password', async () => {
+    users[0].active = false;
+    const response = await login(users[0].email);
+    users[0].active = true;
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), { error: 'Invalid credentials' });
+  });
+  await t.test('email is normalized but password is not echoed', async () => {
+    const response = await login(` ${users[0].email.toUpperCase()} `);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(jwt.verify(body.token, process.env.JWT_SECRET).tokenVersion, 0);
+    assert.equal(JSON.stringify(body).includes(password), false);
+  });
+  await t.test('passwords beyond the bcrypt byte limit are rejected before comparison', async () => {
+    assert.equal((await login(users[0].email, 'é'.repeat(37))).status, 400);
   });
   await t.test('unprefixed login is not the configured API route', async () => {
     const response = await login(users[0].email, password, '/auth/login');

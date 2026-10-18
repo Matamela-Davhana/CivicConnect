@@ -81,13 +81,13 @@ password and unknown-user cases. It does not exercise the browser or request lif
 - Backend API journey test:e2e and browser test:e2e suites/commands remain absent.
   The existing CI contract and quality gate intentionally continue to fail.
 - My Requests passed user-run PostgreSQL and browser checks (details below).
-- Frontend still needs admin GET/PATCH endpoints. Staff interfaces passed the user-run
-  database/browser checks below. Management summary is now implemented locally, with
-  its real database/browser checks still pending.
+- Admin GET/POST/PATCH endpoints are now implemented locally; migration 002 and the new
+  real database/browser checks remain pending below. Staff and management passed their
+  earlier user-run database/browser checks; rerun them after the shared session changes.
 - Request details passed user-run PostgreSQL and owner browser checks (below).
   Submission subsequently passed user-run real DB and browser checks (below).
-  Other backend input validation and safe response fields still require review (e.g. admin
-  create-user currently returns password_hash). No security-completeness claim.
+  The admin follow-up below removes the create-user password_hash response and adds input
+  checks. No security-completeness claim: provisioning/recovery and broader hardening remain.
 - Reconcile response fields and workflow/status semantics with both application owners.
 - Confirm teammate's matching root package.json/lockfile and fresh audit after the
   earlier forced dependency changes. Do not overwrite her uncommitted test work.
@@ -268,11 +268,54 @@ not an automated browser suite or proof of other journeys.
   different from the reporting timezone. Fixture writes explicitly target pg_temp, and
   rollback cleanup checks the temporary request table is gone. Test JWTs exercise real
   authentication middleware; this suite is not a login or production constraint test.
-- Management PostgreSQL suite and live browser review are NOT yet run. The secure helper
-  accepts -IncludeManagement; run it with the earlier suite flags, then restart the review
-  server and sign in as management@example.com. No seed or migration rerun is needed.
+- User supplied a passing 61-result combined PostgreSQL run, zero failures/skips. Their
+  management screenshots show 6 total requests (4 open, 0 overdue, 1 completed, 1 rejected),
+  consistent status/category totals and no requester/comment details. They confirmed refresh
+  retains the figures. The supplied management-to-request URL screenshot shows the frontend
+  no-access page; that screenshot alone is not backend authorization evidence (covered by tests).
 - No remote push, deployment or full CI claim. Admin, browser/API journey automation,
   root dependency reconciliation and operational evidence remain outstanding.
+
+## Admin management and session-state follow-up
+
+- User selected an initial-password form field for local testing. Added admin list/create/
+  update endpoints for users and categories, field/type/length checks, safe response projections,
+  normalized duplicate prevention, and self-change/last-active-admin safeguards. User creation
+  now hashes at cost 12 and never returns password_hash. Frontend masks the password and clears
+  it after success, validates basic inputs and disables controls while saving.
+- New additive migration 002 adds active/token_version to users and case-insensitive normalized
+  uniqueness indexes. Existing records are not deleted or rewritten by application code.
+  Existing duplicate emails/category names cause a transaction rollback and require inspection.
+  CI's disposable setup includes 002. The local Update-LocalAccounts.ps1 helper applies only
+  002 to the fixed civicconnect_local_review database with -X, -W, ON_ERROR_STOP and one transaction.
+  This migration has NOT been run by the assistant; the user must apply it privately next.
+- Authentication verifies current account role/active/session version, not only JWT signature.
+  Deactivation and role changes revoke prior sessions; reactivation does not revive old tokens.
+  Old-format tokens require fresh login. Admin writes revalidate their actor after acquiring a
+  transaction advisory lock, preventing a waiting, newly demoted admin from proceeding. The
+  last-admin rule has unit coverage; simultaneous multi-connection admin races are not yet tested.
+  Already-authorized in-flight requests are not cancelled by a later account change.
+- Staff choices exclude inactive users, and assignment validates that the target is active staff.
+  Deactivating a category prevents new submissions but preserves existing requests and counts.
+- Existing route unit tests now explicitly stub account-state lookup separately; a dedicated
+  suite tests the REAL authentication middleware/state lookup with a database stub, including
+  inactive/changed/deleted users, token versions, expired/malformed tokens and safe DB errors.
+  Existing PostgreSQL suites exercise real account-state lookup after migration 002; the
+  management aggregate fixture also has temporary user rows for its test-signed sessions.
+- Assistant-run verification: backend lint and 145 unit/contract results passed; frontend lint,
+  63 tests in 10 files and production build passed. Helper PowerShell parsing and integration
+  test JavaScript syntax passed. jsdom still does not establish colour-contrast compliance.
+- Added a rollback-only PostgreSQL admin suite: safe lists/role denial, bcrypt creation/login,
+  duplicate/invalid forms, self changes, revoked role/deactivation sessions, reactivation,
+  demoted-admin denial, failed SQL rollback, categories and preserved request relationships.
+  NOT yet run. Its test-only connection adapter maps application transaction boundaries to
+  savepoints; durable commits and full browser behaviour still require manual review.
+- Run Update-LocalAccounts.ps1 first; if it succeeds, run Test-LocalLogin.ps1 with all prior
+  flags plus -IncludeAdmin. Do not reset the database or rerun the seed. Restart browser review
+  afterwards and sign in again, because session claims now include the account token version.
+- No push, deployment or approval. Invitations, password recovery/forced change, admin audit
+  logging, full CI/API/browser journeys, root dependency reconciliation and operational evidence
+  remain outside the verification completed here. This is still a local integration review.
 
 ## AI use
 

@@ -4,6 +4,7 @@ const { once } = require('node:events');
 const jwt = require('jsonwebtoken');
 
 test('My Requests HTTP contract (database stub, not PostgreSQL evidence)', async (t) => {
+  require('../helpers/stub-account-sessions.cjs').stubAccountSessions(t);
   const dbPath = require.resolve('../../db');
   const previousDb = require.cache[dbPath];
   const previousSecret = process.env.JWT_SECRET;

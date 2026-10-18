@@ -10,7 +10,7 @@ import { useAsync } from '../../hooks/useAsync'
 
 const roleOptions = Object.entries(ROLE_LABELS)
 
-function UserRow({ user, isSelf, onSave }) {
+function UserRow({ user, isSelf, onSave, busy }) {
   const [role, setRole] = useState(user.role)
   return (
     <tr>
@@ -23,7 +23,7 @@ function UserRow({ user, isSelf, onSave }) {
         <label className="visually-hidden" htmlFor={`role-${user.id}`}>
           Role for {user.name}
         </label>
-        <select id={`role-${user.id}`} value={role} onChange={(event) => setRole(event.target.value)} disabled={isSelf}>
+        <select id={`role-${user.id}`} value={role} onChange={(event) => setRole(event.target.value)} disabled={isSelf || busy}>
           {roleOptions.map(([value, label]) => (
             <option key={value} value={value}>
               {label}
@@ -37,7 +37,7 @@ function UserRow({ user, isSelf, onSave }) {
           <button
             type="button"
             className="btn btn--small"
-            disabled={isSelf || role === user.role}
+            disabled={isSelf || busy || role === user.role}
             onClick={() => onSave(user.id, { role }, `Role updated for ${user.name}.`)}
           >
             Save role{' '}
@@ -46,7 +46,7 @@ function UserRow({ user, isSelf, onSave }) {
           <button
             type="button"
             className="btn btn--secondary btn--small"
-            disabled={isSelf}
+            disabled={isSelf || busy}
             onClick={() =>
               onSave(user.id, { active: !user.active }, `${user.name} was ${user.active ? 'deactivated' : 'reactivated'}.`)
             }
@@ -61,7 +61,7 @@ function UserRow({ user, isSelf, onSave }) {
 }
 
 function AddUserForm({ onCreated }) {
-  const [values, setValues] = useState({ name: '', email: '', role: 'requester' })
+  const [values, setValues] = useState({ name: '', email: '', role: 'requester', password: '' })
   const [errors, setErrors] = useState({})
   const [attempt, setAttempt] = useState(0)
   const [busy, setBusy] = useState(false)
@@ -75,6 +75,7 @@ function AddUserForm({ onCreated }) {
     if (!values.name.trim()) next['new-user-name'] = 'Enter the person’s full name.'
     if (!values.email.trim()) next['new-user-email'] = 'Enter an email address.'
     else if (!/^\S+@\S+\.\S+$/.test(values.email.trim())) next['new-user-email'] = 'Enter an email address in the format name@example.com.'
+    if (values.password.length < 12 || !values.password.trim()) next['new-user-password'] = 'Enter an initial password of at least 12 characters.'
     setErrors(next)
     setAttempt((value) => value + 1)
     setMessage({ text: '', variant: 'success' })
@@ -82,8 +83,8 @@ function AddUserForm({ onCreated }) {
 
     setBusy(true)
     try {
-      await api.admin.users.create({ name: values.name.trim(), email: values.email.trim(), role: values.role })
-      setValues({ name: '', email: '', role: 'requester' })
+      await api.admin.users.create({ name: values.name.trim(), email: values.email.trim(), role: values.role, password: values.password })
+      setValues({ name: '', email: '', role: 'requester', password: '' })
       setMessage({ text: 'User account created.', variant: 'success' })
       onCreated()
     } catch (error) {
@@ -98,9 +99,11 @@ function AddUserForm({ onCreated }) {
       <h3 id="add-user-heading">Add a user</h3>
       <ErrorSummary errors={errors} attempt={attempt} as="h4" />
       <Notice message={message.text} variant={message.variant} />
-      <Field id="new-user-name" label="Full name" value={values.name} onChange={set('name')} error={errors['new-user-name']} autoComplete="off" required />
-      <Field id="new-user-email" type="email" label="Email address" value={values.email} onChange={set('email')} error={errors['new-user-email']} autoComplete="off" required />
-      <Field id="new-user-role" as="select" label="Role" value={values.role} onChange={set('role')}>
+      <p>Local test accounts only. Share the initial password privately. Email invitations and password reset are not implemented.</p>
+      <Field id="new-user-name" label="Full name" maxLength={150} disabled={busy} value={values.name} onChange={set('name')} error={errors['new-user-name']} autoComplete="off" required />
+      <Field id="new-user-email" type="email" label="Email address" maxLength={255} disabled={busy} value={values.email} onChange={set('email')} error={errors['new-user-email']} autoComplete="off" required />
+      <Field id="new-user-password" type="password" label="Initial password" minLength={12} maxLength={72} disabled={busy} value={values.password} onChange={set('password')} error={errors['new-user-password']} autoComplete="new-password" hint="At least 12 characters, at most 72 UTF-8 bytes. Never reuse a real password for local testing." required />
+      <Field id="new-user-role" as="select" label="Role" disabled={busy} value={values.role} onChange={set('role')}>
         {roleOptions.map(([value, label]) => (
           <option key={value} value={value}>
             {label}
@@ -115,16 +118,21 @@ function AddUserForm({ onCreated }) {
 }
 
 export default function UsersPanel({ currentUserId }) {
+  const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState({ text: '', variant: 'success' })
   const users = useAsync((signal) => api.admin.users.list(signal), 'admin-users')
 
   async function save(id, patch, successText) {
+    if (busy) return
+    setBusy(true)
     try {
       await api.admin.users.update(id, patch)
       setMessage({ text: successText, variant: 'success' })
       users.refresh()
     } catch (error) {
       setMessage({ text: error.message, variant: 'error' })
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -156,7 +164,7 @@ export default function UsersPanel({ currentUserId }) {
               </thead>
               <tbody>
                 {list.map((person) => (
-                  <UserRow key={`${person.id}-${person.role}`} user={person} isSelf={person.id === currentUserId} onSave={save} />
+                  <UserRow key={`${person.id}-${person.role}`} user={person} isSelf={person.id === currentUserId} onSave={save} busy={busy} />
                 ))}
               </tbody>
             </table>

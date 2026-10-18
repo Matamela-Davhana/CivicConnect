@@ -30,7 +30,7 @@ router.get('/requests', auth('staff'), async (req, res) => {
 
 router.get('/assignees', auth('staff'), async (req, res) => {
   try {
-    res.json((await db.query("SELECT id, name FROM users WHERE role='staff' ORDER BY name, id")).rows);
+    res.json((await db.query("SELECT id, name FROM users WHERE role='staff' AND active=true ORDER BY name, id")).rows);
   } catch {
     res.status(500).json({ message: 'Could not load staff members. Please try again.' });
   }

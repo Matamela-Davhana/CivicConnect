@@ -42,6 +42,8 @@ function AddCategoryForm({ onCreated }) {
       <Notice message={message.text} variant={message.variant} />
       <Field
         id="new-category-name"
+        maxLength={50}
+        disabled={busy}
         label="Category name"
         value={name}
         onChange={(event) => setName(event.target.value)}
@@ -57,16 +59,21 @@ function AddCategoryForm({ onCreated }) {
 }
 
 export default function CategoriesPanel() {
+  const [busy, setBusy] = useState(false)
   const categories = useAsync((signal) => api.admin.categories.list(signal), 'admin-categories')
   const [message, setMessage] = useState({ text: '', variant: 'success' })
 
   async function toggle(category) {
+    if (busy) return
+    setBusy(true)
     try {
       await api.admin.categories.update(category.id, { active: !category.active })
       setMessage({ text: `${category.name} was ${category.active ? 'deactivated' : 'reactivated'}.`, variant: 'success' })
       categories.refresh()
     } catch (error) {
       setMessage({ text: error.message, variant: 'error' })
+    } finally {
+      setBusy(false)
     }
   }
 
@@ -100,7 +107,7 @@ export default function CategoriesPanel() {
                     <th scope="row">{category.name}</th>
                     <td>{category.active ? 'Available to residents' : 'Deactivated'}</td>
                     <td>
-                      <button type="button" className="btn btn--secondary btn--small" onClick={() => toggle(category)}>
+                      <button type="button" className="btn btn--secondary btn--small" disabled={busy} onClick={() => toggle(category)}>
                         {category.active ? 'Deactivate' : 'Reactivate'}{' '}
                         <span className="visually-hidden">{category.name}</span>
                       </button>
