@@ -1,17 +1,18 @@
 const express = require('express');
 const db = require('../db');
 const auth = require('../middleware/auth');
+const { ValidationError, validateSubmission, submitRequest } = require('../services/submit-request');
 const router = express.Router();
 
 router.post('/', auth('requester'), async (req, res) => {
-  const { category_id, description, other_explanation } = req.body;
-  const reference = Math.random().toString(36).substring(2, 10).toUpperCase();
-  const result = await db.query(
-    `INSERT INTO service_requests (reference, category_id, description, other_explanation, status, requester_id)
-     VALUES ($1,$2,$3,$4,'submitted',$5) RETURNING *`,
-    [reference, category_id, description, other_explanation, req.user.id]
-  );
-  res.json(result.rows[0]);
+  try {
+    const input = validateSubmission(req.body);
+    const created = await submitRequest(db, input, req.user.id);
+    res.status(201).json(created);
+  } catch (error) {
+    if (error instanceof ValidationError) return res.status(422).json({ message: error.message, errors: error.errors });
+    res.status(500).json({ message: 'Could not submit your request. Please try again.' });
+  }
 });
 
 router.get('/', auth('requester'), async (req, res) => {
@@ -69,20 +70,20 @@ router.get('/:id', auth(), async (req, res) => {
     // Do not disclose whether another requester's ID exists, or fetch its timeline.
     if (!row) return res.status(404).json(notFound);
     const timeline = await db.query(`
-      SELECT * FROM (
+      SELECT id, visibility, author, message, "createdAt" FROM (
         SELECT 'history-' || h.id::text AS id, 'public' AS visibility, u.name AS author,
           CASE WHEN h.old_status IS NULL THEN 'Request ' || replace(h.new_status, '_', ' ') || '.'
             ELSE 'Status changed from ' || replace(h.old_status, '_', ' ') ||
                  ' to ' || replace(h.new_status, '_', ' ') || '.' END AS message,
-          h.changed_at AS "createdAt"
+          h.changed_at AS "createdAt", CASE WHEN h.old_status IS NULL THEN 0 ELSE 1 END AS event_order
         FROM status_history h JOIN users u ON u.id = h.changed_by
         WHERE h.request_id = $1
         UNION ALL
         SELECT 'entry-' || e.id::text AS id, e.entry_type AS visibility, u.name AS author,
-               e.content AS message, e.created_at AS "createdAt"
+               e.content AS message, e.created_at AS "createdAt", 2 AS event_order
         FROM request_entries e JOIN users u ON u.id = e.author_id
         WHERE e.request_id = $1 AND ($2::boolean OR e.entry_type = 'public')
-      ) events ORDER BY "createdAt" ASC, id ASC
+      ) events ORDER BY "createdAt" ASC, event_order ASC, id ASC
     `, [id, isStaff]);
     const detail = {
       id: row.id, reference: row.reference, category: row.category, status: row.status,

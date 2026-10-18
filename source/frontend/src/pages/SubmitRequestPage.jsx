@@ -33,6 +33,8 @@ function RequestForm({ categories }) {
     }
     if (needsExplanation && !otherExplanation.trim()) {
       next.otherExplanation = 'Explain what kind of problem this is, because you selected “Other”.'
+    } else if (needsExplanation && otherExplanation.trim().length > DESCRIPTION_MAX_LENGTH) {
+      next.otherExplanation = `Shorten the explanation to ${DESCRIPTION_MAX_LENGTH} characters or fewer.`
     }
     return next
   }

@@ -80,12 +80,12 @@ password and unknown-user cases. It does not exercise the browser or request lif
   terminal screenshot. Full browser verification remains outstanding.
 - Backend API journey test:e2e and browser test:e2e suites/commands remain absent.
   The existing CI contract and quality gate intentionally continue to fail.
-- My Requests list alignment is implemented locally (details below), pending real DB verification.
-- Frontend needs GET /api/categories, /api/staff/assignees, /api/management/summary,
+- My Requests passed user-run PostgreSQL and browser checks (details below).
+- Frontend still needs GET /api/staff/assignees, /api/management/summary,
   admin GET/PATCH endpoints and POST /api/requests/:id/actions; current backend
   routes do not provide these interfaces. Do not hide these failures in the UI.
-- Request detail access and response filtering are now implemented locally (see
-  follow-up below), pending the new real PostgreSQL checks and browser verification.
+- Request details passed user-run PostgreSQL and owner browser checks (below).
+  Submission is implemented locally but its real DB and browser checks remain pending.
   Other backend input validation and safe response fields still require review (e.g. admin
   create-user currently returns password_hash). No security-completeness claim.
 - Reconcile response fields and workflow/status semantics with both application owners.
@@ -155,12 +155,54 @@ not an automated browser suite or proof of other journeys.
   staff, management and admin logins. It verifies detail field mapping, timeline
   order/privacy, staff-only identities, identical 404s, role restrictions, query
   parameter bypass attempts and empty timelines. Six temporary users are rolled
-  back along with their requests/history/comments. This expanded suite has NOT
-  yet run against the user's PostgreSQL database.
-- Next: run Test-LocalLogin.ps1 -IncludeMyRequests, then restart the browser review
-  servers to pick up the backend changes and open REQ-001 as the requester.
-- Submission and staff action endpoints remain unfinished. No remote branch was
+  back along with their requests/history/comments. The user subsequently supplied
+  a passing PostgreSQL run: 22 reported results including parents, zero failures/skips.
+- User's subsequent browser screenshot of REQ-001 confirms description/category,
+  public acknowledgement and initial history render, without internal comments
+  or staff actions. Equal seed timestamps put the acknowledgement first; the
+  submission follow-up below implements an explicit tie-breaker.
+- At this checkpoint submission and staff actions were unfinished. No remote branch was
   pushed, no PR was approved and no deployment was performed by this follow-up.
+
+## Request submission follow-up
+
+- GET /api/categories returns active categories, IDs/names and isOther, sorted
+  by name/ID for authenticated recognized roles. Anonymous access is rejected.
+- POST /api/requests accepts the agreed camelCase fields: categoryId, description,
+  otherExplanation. The old snake_case submission fields are no longer the
+  interface; team clients/tests must use the agreed frontend contract.
+- Only requesters can submit. The backend takes owner from the signed token,
+  forces submitted status and generates a 19-character cryptographic reference.
+  A database uniqueness collision retries at most three transaction attempts.
+- Server validation rejects invalid UUID/type, descriptions outside 10–1000 trimmed
+  characters, unavailable/inactive categories and missing Other explanations.
+  Explanation length is capped at 1000 characters on both UI and server; ordinary
+  categories discard an unnecessary explanation. Field errors use the form's
+  category/description/otherExplanation IDs with status 422.
+- A dedicated database connection saves the request and initial status history
+  atomically. The category is locked FOR SHARE during validation/save, preventing
+  a concurrent category disable. Errors roll back; every connection is released.
+- Success returns status 201 and only id/reference, which the existing frontend
+  uses to navigate to the saved detail page. Malformed JSON and oversized payloads
+  receive generic JSON errors; unexpected exceptions do not expose stack traces.
+- Timeline ties sort initial history, then other status changes, then comments,
+  retaining chronological ordering and a deterministic ID tie-breaker. No timeline
+  ordering metadata is exposed in the API response.
+- Verified: backend lint and 62 Node unit/contract results; frontend lint, all 42
+  tests in 9 files and production build. Existing jsdom canvas limitation remains.
+- New PostgreSQL suite covers active categories, real inserts/history, detail/list
+  reads, cross-owner denial, invalid/disabled categories, boundary input failures,
+  Other, injected history-SQL failure rollback, real unique-reference retry and
+  equal-timestamp timeline ordering. This suite has NOT run yet.
+- That suite uses an outer rollback-only fixture transaction and maps application
+  transaction boundaries to savepoints in a test-only connection adapter. Business
+  SQL runs against PostgreSQL, but durable commit persistence is not proved by this
+  adapter: verify a browser submission survives refresh as the next manual step.
+- Run Test-LocalLogin.ps1 -IncludeMyRequests -IncludeSubmission privately; do not
+  rerun the seed. After passing, restart the browser servers and submit one clearly
+  labelled local test request. Existing seeded data should be preserved.
+- Remaining release gaps include staff/admin/management workflows, browser automation,
+  full CI integration, review, deployment and operational evidence. No push or approval.
 
 ## AI use
 

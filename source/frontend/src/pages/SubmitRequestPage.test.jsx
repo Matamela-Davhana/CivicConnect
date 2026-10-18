@@ -1,8 +1,9 @@
-import { screen } from '@testing-library/react'
+import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { api } from '../api'
+import { ApiError } from '../api/client'
 import { people, renderApp } from '../test/renderApp'
 
 vi.mock('../api', () => ({
@@ -76,5 +77,40 @@ describe('SubmitRequestPage', () => {
     api.categories.list.mockResolvedValue([])
     renderApp({ route: '/requests/new', user: people.requester })
     expect(await screen.findByRole('heading', { name: /no categories are available/i })).toBeInTheDocument()
+  })
+
+  it('submits a normal category without an Other explanation', async () => {
+    api.requests.create.mockResolvedValue({ id: 'r10', reference: 'CC-0010' })
+    const user = userEvent.setup()
+    renderApp({ route: '/requests/new', user: people.requester })
+    await user.selectOptions(await screen.findByLabelText(/category/i), 'Water')
+    fireEvent.change(screen.getByLabelText(/describe the problem/i), { target: { value: '  A leaking pipe needs repair.  ' } })
+    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    expect(api.requests.create).toHaveBeenCalledWith({ categoryId: 'c1', description: 'A leaking pipe needs repair.' })
+    expect(await screen.findByText(/CC-0010/)).toBeInTheDocument()
+  })
+
+  it('blocks an Other explanation longer than the backend limit', async () => {
+    const user = userEvent.setup()
+    renderApp({ route: '/requests/new', user: people.requester })
+    await user.selectOptions(await screen.findByLabelText(/category/i), 'Other')
+    fireEvent.change(screen.getByLabelText(/describe the problem/i), { target: { value: 'A service issue needs attention.' } })
+    fireEvent.change(screen.getByLabelText(/explain what kind of problem/i), { target: { value: 'x'.repeat(1001) } })
+    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    expect(screen.getByRole('link', { name: 'Shorten the explanation to 1000 characters or fewer.' })).toBeInTheDocument()
+    expect(api.requests.create).not.toHaveBeenCalled()
+  })
+
+  it('shows backend category validation with a working field link and re-enables submission', async () => {
+    api.requests.create.mockRejectedValueOnce(new ApiError(422, 'Check the highlighted fields and try again.', { category: 'Select an available category.' }))
+    const user = userEvent.setup()
+    renderApp({ route: '/requests/new', user: people.requester })
+    await user.selectOptions(await screen.findByLabelText(/category/i), 'Water')
+    fireEvent.change(screen.getByLabelText(/describe the problem/i), { target: { value: 'A service issue needs attention.' } })
+    await user.click(screen.getByRole('button', { name: 'Submit request' }))
+    const link = await screen.findByRole('link', { name: 'Select an available category.' })
+    await user.click(link)
+    expect(screen.getByLabelText(/category/i)).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Submit request' })).toBeEnabled()
   })
 })

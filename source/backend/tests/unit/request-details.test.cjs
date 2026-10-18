@@ -31,7 +31,7 @@ test('request details HTTP contract (database stub)', async (t) => {
         return { rows: params[0] === requestId && (params[1] || params[2] === owner) ? [row] : [] };
       }
       assert.match(sql, /e.entry_type = 'public'/);
-      assert.match(sql, /ORDER BY "createdAt" ASC, id ASC/);
+      assert.match(sql, /ORDER BY "createdAt" ASC, event_order ASC, id ASC/);
       assert.equal(params[0], requestId);
       if (fail === 'timeline') throw new Error('Private diagnostic');
       return { rows: events.filter((entry) => params[1] || entry.visibility === 'public') };
