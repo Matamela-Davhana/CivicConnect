@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/useAuth'
 import ErrorSummary from '../components/ErrorSummary'
 import { Field } from '../components/FormFields'
-import { HOME_BY_ROLE } from '../constants'
+import { loginDestination } from '../auth/loginDestination'
 import { usePageTitle } from '../hooks/usePageTitle'
 
 export default function LoginPage() {
@@ -16,7 +16,7 @@ export default function LoginPage() {
   const [submitting, setSubmitting] = useState(false)
 
   if (user) {
-    const destination = location.state?.from?.pathname ?? HOME_BY_ROLE[user.role] ?? '/'
+    const destination = loginDestination(user.role, location.state?.from?.pathname)
     return <Navigate to={destination} replace />
   }
 

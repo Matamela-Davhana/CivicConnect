@@ -4,7 +4,7 @@ module.exports = [{
   files: ['**/*.js', '**/*.cjs'],
   languageOptions: {
     ecmaVersion: 'latest', sourceType: 'commonjs',
-    globals: { process: 'readonly', console: 'readonly', fetch: 'readonly', URL: 'readonly', __dirname: 'readonly', __filename: 'readonly' },
+    globals: { process: 'readonly', console: 'readonly', fetch: 'readonly', AbortSignal: 'readonly', URL: 'readonly', __dirname: 'readonly', __filename: 'readonly' },
   },
   rules: {
     'no-undef': 'error', 'no-unreachable': 'error', 'no-dupe-args': 'error',

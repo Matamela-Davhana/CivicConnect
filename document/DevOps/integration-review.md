@@ -317,6 +317,72 @@ not an automated browser suite or proof of other journeys.
   logging, full CI/API/browser journeys, root dependency reconciliation and operational evidence
   remain outside the verification completed here. This is still a local integration review.
 
+## Automated journey follow-up (18 October 2026)
+
+- User evidence confirms migration 002 succeeded and the combined 73-result PostgreSQL
+  suite passed without failures or skips. Their manual admin checks confirmed account
+  creation survives refresh, requester login, deactivation blocks login, and reactivation
+  permits login. The user chose to stop remaining manual checks. Manual role/category/
+  live-session checks remain **not performed**, not assumed passed.
+- Added eight live API journey checks (nine Node test results including the parent) against
+  a separately started Express process and real PostgreSQL. No HTTP/database mocks or
+  transaction-to-savepoint adapter: writes commit, and independent database connections
+  check durable records. Coverage includes submission/history, cross-owner denial, staff
+  lifecycle/private notes, two concurrent same-version writes (one 200 and one 409),
+  terminal closure, aggregate counts, category availability and account-session revocation.
+  These API checks and all 73 integration results passed in the assistant's isolated cluster.
+  One two-write race is not a load test or proof of all possible concurrency schedules.
+- Added Chromium browser journeys using the built frontend, relative API proxy, live API
+  and disposable database. The journeys use UI login and independent browser contexts,
+  not injected authentication tokens or route mocks. All three journeys passed in the final
+  isolated run: requester submission through staff accept/assign/progress/hold/resume/
+  resolve/close with public-only history; admin create/role-change/session-revocation/
+  deactivate/reactivate/category availability; management refresh and detail-route denial.
+- The browser run found a real login-navigation defect: a newly promoted staff account
+  could be redirected to its remembered requester-only page after signing in again.
+  Login destinations now honor the current role, retain permitted request-detail deep
+  links, and otherwise use that role's home page. Added ten destination cases and a
+  component regression test. Frontend test count is now 74 in 11 files; all passed.
+  All browser journeys passed after this fix and corrections to test-only selectors.
+- Final local run completed with exit code 0: 145 backend unit/contract results, 73
+  PostgreSQL integration results, eight live API subchecks (nine results with the parent),
+  74 frontend tests, 42 helper/safety checks, and three Chromium journeys passed; no tests
+  skipped. Both lints, production build and all three CI contract checks also passed.
+  jsdom's existing canvas warning remains; neither this run nor Chromium journey coverage
+  establishes comprehensive accessibility, cross-browser/mobile, performance or security
+  certification. The runner shut down its disposable API, UI and PostgreSQL services.
+- Added genuine test:e2e commands and browser installer, isolated Vitest discovery from
+  Playwright, seeded the browser CI database, and corrected the proxy environment variable.
+  Browser CI now explicitly builds with NODE_ENV=production while API/tests use test mode.
+  Quality-gate requirements remain unchanged: missing, failed or skipped jobs still fail.
+- Local dependency audits of source/backend and source/frontend reported zero advisories
+  (including development dependencies). This does not reconcile the teammate's separate
+  root-level package changes or attest to other branches/deployed versions.
+- Added tools/devops/test-local-isolated.ps1. It creates a new loopback-only PostgreSQL
+  cluster in ignored artifacts, picks temporary ports, applies migrations/seed only to a
+  fresh civicconnect_test database, runs lint/unit/integration/API/browser checks, then stops
+  its own services. Your civicconnect_local_review database is never targeted. Synthetic
+  data/logs are retained locally; no automatic database/file deletion is performed.
+  The restricted -ResumeInitializedData option accepts only a stopped initialized cluster
+  under this checkout's artifacts/isolated-<32 hex>/postgres-data, rejects reparse points,
+  and preserves existing synthetic data rather than reseeding/resetting it.
+- E2E suites require NODE_ENV=test, ALLOW_DISPOSABLE_E2E=1, loopback origins and the exact
+  civicconnect_test database name. These guardrails prevent accidental review/hosted use;
+  the runner/CI must still start the API against that same disposable database. Ten safety
+  checks plus 32 existing DevOps helper checks passed. Reports omit browser traces/videos
+  to avoid recording authentication payloads; failure screenshots contain synthetic data.
+- Windows runner usage after installing locked dependencies (Node 24+, PostgreSQL 18):
+
+  ```powershell
+  .\tools\devops\test-local-isolated.ps1 -NodePath "C:\path\to\node.exe"
+  ```
+
+  The runner downloads Chromium headless into ignored artifacts/playwright-browsers if
+  necessary. It does not require the user's PostgreSQL password. Its trust-authenticated
+  database is loopback-only and must remain disposable and stopped after verification.
+- No remote push, PR approval, GitHub Actions run, or deployment was performed. CI still
+  needs a real Linux/PostgreSQL 17 run; this local run uses Windows/PostgreSQL 18.
+
 ## AI use
 
 Codex assisted with local branch integration, the narrow startup/seed/dependency

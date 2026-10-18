@@ -35,7 +35,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           package-manager-cache: false
-      - run: node --test tools/devops/helpers.test.mjs
+      - run: node --test tools/devops/helpers.test.mjs tools/devops/e2e-safety.test.cjs
       - name: Record the exact code under test
         env:
           TESTED_SHA: ${{ github.sha }}
@@ -87,6 +87,7 @@ jobs:
       HOST: 127.0.0.1
       PORT: '3000'
       BASE_URL: http://127.0.0.1:3000
+      ALLOW_DISPOSABLE_E2E: '1'
       DATABASE_URL: postgres://postgres:disposable-ci-only@127.0.0.1:5432/civicconnect_test
       DATABASE_SSL: 'false'
       JWT_SECRET: ephemeral-ci-only-never-use-for-hosting-or-real-users
@@ -157,7 +158,8 @@ jobs:
       PORT: '3000'
       BASE_URL: http://127.0.0.1:3000
       E2E_BASE_URL: http://127.0.0.1:4173
-      VITE_API_BASE_URL: http://127.0.0.1:3000
+      VITE_PROXY_TARGET: http://127.0.0.1:3000
+      ALLOW_DISPOSABLE_E2E: '1'
       DATABASE_URL: postgres://postgres:disposable-ci-only@127.0.0.1:5432/civicconnect_test
       DATABASE_SSL: 'false'
       JWT_SECRET: ephemeral-ci-only-never-use-for-hosting-or-real-users
@@ -182,11 +184,14 @@ jobs:
         working-directory: source/frontend
       - run: npm run build
         working-directory: source/frontend
+        env:
+          NODE_ENV: production
       - run: |
           psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f source/backend/migrations/001_initial_schema.sql
           psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 --single-transaction -f source/backend/migrations/002_account_state.sql
       - name: Exercise the built UI against the real API and disposable database
         run: |
+          psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f source/backend/migrations/seed.sql
           mkdir -p artifacts/devops
           setsid bash -c 'cd source/backend && exec npm start' > artifacts/devops/browser-api.log 2>&1 &
           API_PID=$!

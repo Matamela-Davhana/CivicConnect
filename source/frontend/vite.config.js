@@ -14,6 +14,7 @@ export default defineConfig({
   server: { proxy: api },
   preview: { proxy: api },
   test: {
+    include: ['src/**/*.test.{js,jsx}'],
     environment: 'jsdom',
     setupFiles: './src/test/setup.js',
     css: false,

@@ -9,6 +9,8 @@ vi.mock('../api', () => ({
   api: {
     auth: { login: vi.fn() },
     requests: { listMine: vi.fn(() => new Promise(() => {})) },
+    staff: { queue: vi.fn(() => new Promise(() => {})) },
+    categories: { list: vi.fn(() => new Promise(() => {})) },
   },
 }))
 
@@ -35,6 +37,16 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText(/password/i), 'wrong')
     await user.click(screen.getByRole('button', { name: 'Sign in' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('The email address or password is incorrect.')
+  })
+
+  it('redirects a newly promoted staff user away from a remembered requester page', async () => {
+    api.auth.login.mockResolvedValue({ token: 't', user: people.staff })
+    const user = userEvent.setup()
+    renderApp({ route: '/requests' })
+    await user.type(await screen.findByLabelText(/email address/i), 'staff@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'disposable password')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Staff dashboard' })).toBeInTheDocument()
   })
 
   it('sends a requester to My requests after signing in', async () => {
