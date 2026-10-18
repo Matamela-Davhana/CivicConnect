@@ -112,6 +112,37 @@ test('staff lifecycle against PostgreSQL with rollback-only fixtures', { timeout
     assert.deepEqual(await (await get(`/staff/requests?category=${categoryId}&q=%25`)).json(), []);
     assert.deepEqual(await (await get(`/staff/requests?category=${categoryId}&status=closed`)).json(), []);
   });
+  await t.test('queue JSON preserves UTC milliseconds, escaping and sub-millisecond ordering', async () => {
+    await client.query('SAVEPOINT queue_encoding');
+    try {
+      await client.query("SET LOCAL TIME ZONE 'Africa/Johannesburg'");
+      const name = 'Quote " slash \\ newline\n <script> & café';
+      await client.query('UPDATE users SET name=$1 WHERE id=$2', [name, users[0]]);
+      // Both round to the same displayed millisecond: sort by the original
+      // timestamp, not its formatted JSON value. Reverse the prior fixture order.
+      await client.query(`UPDATE service_requests SET submitted_at=CASE WHEN id=$1
+        THEN '2026-10-18 14:34:56.123999+02'::timestamptz
+        ELSE '2026-10-18 14:34:56.123001+02'::timestamptz END
+        WHERE id=ANY($2::uuid[])`, [requestId, [requestId, rejectionId]]);
+      const response = await get(`/staff/requests?category=${categoryId}`);
+      assert.match(response.headers.get('content-type'), /^application\/json/);
+      const rows = await response.json();
+      assert.deepEqual(rows.map(row => row.id), [requestId, rejectionId]);
+      for (const row of rows) {
+        assert.equal(row.createdAt, '2026-10-18T12:34:56.123Z');
+        assert.equal(row.requester.name, name);
+        assert.equal(row.assignee, null);
+        assert.equal(row.targetDate, null);
+      }
+      await client.query('UPDATE service_requests SET submitted_at=$1 WHERE id=ANY($2::uuid[])',
+        ['2026-10-18T12:34:56.123Z', [requestId, rejectionId]]);
+      assert.deepEqual((await (await get(`/staff/requests?category=${categoryId}`)).json()).map(row => row.id),
+        [requestId, rejectionId].sort().reverse());
+    } finally {
+      await client.query('ROLLBACK TO SAVEPOINT queue_encoding');
+      await client.query('RELEASE SAVEPOINT queue_encoding');
+    }
+  });
   await t.test('assignee directory contains staff only, without email/password data', async () => {
     const response = await get('/staff/assignees');
     assert.equal(response.status, 200);

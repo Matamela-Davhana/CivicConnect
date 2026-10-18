@@ -11,8 +11,13 @@ router.get('/requests', auth('staff'), async (req, res) => {
     return res.status(422).json({ message: 'Choose valid status/category filters and a reference search of at most 100 characters.' });
   }
   try {
-    const result = await db.query(`SELECT r.id, r.reference, c.name AS category, r.status,
-      r.submitted_at AS "createdAt", r.target_resolution_date::text AS "targetDate",
+    // Keep the full queue contract, but encode it once in PostgreSQL. Casting to
+    // text avoids pg parsing thousands of nested JSON objects only for Express
+    // to stringify them again. The sorted subquery retains timestamp/ID ordering.
+    const result = await db.query(`SELECT COALESCE(json_agg(queue), '[]'::json)::text AS payload
+      FROM (SELECT r.id, r.reference, c.name AS category, r.status,
+      to_char(r.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS "createdAt",
+      r.target_resolution_date::text AS "targetDate",
       json_build_object('id', requester.id, 'name', requester.name) AS requester,
       CASE WHEN assignee.id IS NULL THEN NULL ELSE json_build_object('id', assignee.id, 'name', assignee.name) END AS assignee
       FROM service_requests r JOIN categories c ON c.id=r.category_id
@@ -21,8 +26,8 @@ router.get('/requests', auth('staff'), async (req, res) => {
       WHERE ($1::text='' OR r.status=$1)
         AND ($2::uuid IS NULL OR r.category_id=$2::uuid)
         AND strpos(lower(r.reference), lower($3::text)) > 0
-      ORDER BY r.submitted_at DESC, r.id DESC`, [status, category || null, q.trim()]);
-    res.json(result.rows);
+      ORDER BY r.submitted_at DESC, r.id DESC) queue`, [status, category || null, q.trim()]);
+    res.type('application/json').send(result.rows[0].payload);
   } catch {
     res.status(500).json({ message: 'Could not load the staff queue. Please try again.' });
   }
