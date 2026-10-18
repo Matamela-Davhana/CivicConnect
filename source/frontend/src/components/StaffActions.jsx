@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { api } from '../api'
 import { useAsync } from '../hooks/useAsync'
+import { STAFF_TRANSITIONS, STATUS_LABELS } from '../constants'
 import DataState from './DataState'
 import { Field } from './FormFields'
 import Notice from './Notice'
@@ -26,8 +27,10 @@ function RejectForm({ busy, onSubmit }) {
     <form onSubmit={handleSubmit} noValidate className="action-form">
       <Field
         id="reject-reason"
+        disabled={busy}
         as="textarea"
         rows={3}
+        maxLength={1000}
         ref={ref}
         label="Reason for rejecting"
         hint="The requester will see this reason."
@@ -70,6 +73,7 @@ function AssignForm({ request, busy, onSubmit }) {
         {(list) => (
           <Field
             id="assignee"
+            disabled={busy}
             as="select"
             ref={ref}
             label="Assign to"
@@ -94,7 +98,7 @@ function AssignForm({ request, busy, onSubmit }) {
   )
 }
 
-function TargetDateForm({ request, busy, onSubmit }) {
+function TargetDateForm({ request, busy, onSubmit, accepting = false }) {
   const [date, setDate] = useState(request.targetDate ? String(request.targetDate).slice(0, 10) : '')
   const [error, setError] = useState('')
   const ref = useRef(null)
@@ -107,13 +111,14 @@ function TargetDateForm({ request, busy, onSubmit }) {
       return
     }
     setError('')
-    onSubmit({ action: 'set_target', targetDate: date }, 'Target date saved.')
+    onSubmit({ action: accepting ? 'accept' : 'set_target', targetDate: date }, accepting ? 'Request accepted.' : 'Target date saved.')
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="action-form">
       <Field
         id="target-date"
+        disabled={busy}
         type="date"
         ref={ref}
         label="Target completion date"
@@ -123,20 +128,20 @@ function TargetDateForm({ request, busy, onSubmit }) {
         required
       />
       <button type="submit" className="btn" disabled={busy}>
-        Save target date
+        {accepting ? 'Accept request' : 'Save target date'}
       </button>
     </form>
   )
 }
 
-function UpdateForm({ busy, onSubmit }) {
+function UpdateForm({ request, busy, onSubmit }) {
   const [message, setMessage] = useState('')
   const [visibility, setVisibility] = useState('public')
   const [status, setStatus] = useState('')
   const [error, setError] = useState('')
   const ref = useRef(null)
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
     if (!message.trim()) {
       setError('Write an update before posting.')
@@ -144,19 +149,24 @@ function UpdateForm({ busy, onSubmit }) {
       return
     }
     setError('')
-    onSubmit(
+    const saved = await onSubmit(
       { action: 'update', message: message.trim(), visibility, ...(status ? { status } : {}) },
       'Update posted.',
     )
-    setMessage('')
+    if (saved) {
+      setMessage('')
+      setStatus('')
+    }
   }
 
   return (
     <form onSubmit={handleSubmit} noValidate className="action-form">
       <Field
         id="update-message"
+        disabled={busy}
         as="textarea"
         rows={3}
+        maxLength={1000}
         ref={ref}
         label="Update or comment"
         value={message}
@@ -166,6 +176,7 @@ function UpdateForm({ busy, onSubmit }) {
       />
       <Field
         id="update-visibility"
+        disabled={busy}
         as="select"
         label="Who can see this"
         value={visibility}
@@ -176,14 +187,17 @@ function UpdateForm({ busy, onSubmit }) {
       </Field>
       <Field
         id="update-status"
+        disabled={busy}
         as="select"
         label="Change status"
+        hint="Status changes are always visible to the requester, even when the comment is staff-only."
         value={status}
         onChange={(event) => setStatus(event.target.value)}
       >
         <option value="">Keep the current status</option>
-        <option value="in_progress">In progress</option>
-        <option value="completed">Completed</option>
+        {(STAFF_TRANSITIONS[request.status] ?? []).map((value) => (
+          <option key={value} value={value}>{STATUS_LABELS[value]}</option>
+        ))}
       </Field>
       <button type="submit" className="btn" disabled={busy}>
         Post update
@@ -193,42 +207,48 @@ function UpdateForm({ busy, onSubmit }) {
 }
 
 export default function StaffActions({ request, onChanged }) {
-  const [busy, setBusy] = useState(false)
+  const [saving, setBusy] = useState(false)
+  const [savedVersion, setSavedVersion] = useState(0)
+  const inFlight = useRef(false)
   const [message, setMessage] = useState({ text: '', variant: 'success' })
+  const busy = saving || !Number.isSafeInteger(request.rowVersion) || savedVersion > request.rowVersion
 
   async function perform(payload, successText) {
+    if (inFlight.current || busy) return false
+    inFlight.current = true
     setBusy(true)
     setMessage({ text: '', variant: 'success' })
     try {
-      await api.requests.act(request.id, payload)
+      await api.requests.act(request.id, { ...payload, rowVersion: request.rowVersion })
+      setSavedVersion(request.rowVersion + 1)
       setMessage({ text: successText, variant: 'success' })
       onChanged()
+      return true
     } catch (error) {
       setMessage({ text: error.message, variant: 'error' })
+      return false
     } finally {
+      inFlight.current = false
       setBusy(false)
     }
   }
 
   const isNew = request.status === 'submitted'
-  const isActive = request.status === 'accepted' || request.status === 'in_progress'
+  const isActive = ['accepted', 'assigned', 'in_progress', 'on_hold'].includes(request.status)
+  const canUpdate = isActive || request.status === 'resolved'
 
   return (
     <section aria-labelledby="actions-heading" className="card">
       <h2 id="actions-heading">Staff actions</h2>
       <Notice message={message.text} variant={message.variant} />
+      {message.variant === 'error' && (
+        <button type="button" className="btn btn--secondary" onClick={onChanged} disabled={saving}>Refresh request</button>
+      )}
 
       {isNew && (
         <>
           <h3>Review this request</h3>
-          <button
-            type="button"
-            className="btn"
-            disabled={busy}
-            onClick={() => perform({ action: 'accept' }, 'Request accepted.')}
-          >
-            Accept request
-          </button>
+          <TargetDateForm request={request} busy={busy} onSubmit={perform} accepting />
           <RejectForm busy={busy} onSubmit={perform} />
         </>
       )}
@@ -236,14 +256,16 @@ export default function StaffActions({ request, onChanged }) {
       {isActive && (
         <>
           <h3>Assignment and target date</h3>
-          <AssignForm key={request.assignee?.id ?? 'none'} request={request} busy={busy} onSubmit={perform} />
-          <TargetDateForm key={request.targetDate ?? 'none'} request={request} busy={busy} onSubmit={perform} />
-          <h3>Progress</h3>
-          <UpdateForm busy={busy} onSubmit={perform} />
+          <AssignForm key={`assignee-${request.assignee?.id ?? 'none'}`} request={request} busy={busy} onSubmit={perform} />
+          <TargetDateForm key={`target-${request.targetDate ?? 'none'}`} request={request} busy={busy} onSubmit={perform} />
         </>
       )}
 
-      {!isNew && !isActive && <p>This request is closed. No further actions are available.</p>}
+      {canUpdate && <>
+        <h3>Progress</h3>
+        <UpdateForm request={request} busy={busy} onSubmit={perform} />
+      </>}
+      {!isNew && !canUpdate && <p>This request is closed. No further actions are available.</p>}
     </section>
   )
 }

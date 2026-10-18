@@ -81,11 +81,10 @@ password and unknown-user cases. It does not exercise the browser or request lif
 - Backend API journey test:e2e and browser test:e2e suites/commands remain absent.
   The existing CI contract and quality gate intentionally continue to fail.
 - My Requests passed user-run PostgreSQL and browser checks (details below).
-- Frontend still needs GET /api/staff/assignees, /api/management/summary,
-  admin GET/PATCH endpoints and POST /api/requests/:id/actions; current backend
-  routes do not provide these interfaces. Do not hide these failures in the UI.
+- Frontend still needs /api/management/summary and admin GET/PATCH endpoints.
+  Staff interfaces are now implemented locally; real database/browser checks are pending below.
 - Request details passed user-run PostgreSQL and owner browser checks (below).
-  Submission is implemented locally but its real DB and browser checks remain pending.
+  Submission subsequently passed user-run real DB and browser checks (below).
   Other backend input validation and safe response fields still require review (e.g. admin
   create-user currently returns password_hash). No security-completeness claim.
 - Reconcile response fields and workflow/status semantics with both application owners.
@@ -193,16 +192,51 @@ not an automated browser suite or proof of other journeys.
 - New PostgreSQL suite covers active categories, real inserts/history, detail/list
   reads, cross-owner denial, invalid/disabled categories, boundary input failures,
   Other, injected history-SQL failure rollback, real unique-reference retry and
-  equal-timestamp timeline ordering. This suite has NOT run yet.
+  equal-timestamp timeline ordering. The user's subsequent screenshot confirms all
+  36 combined login/list/detail/submission results passed, zero failures/skips.
 - That suite uses an outer rollback-only fixture transaction and maps application
   transaction boundaries to savepoints in a test-only connection adapter. Business
   SQL runs against PostgreSQL, but durable commit persistence is not proved by this
-  adapter: verify a browser submission survives refresh as the next manual step.
-- Run Test-LocalLogin.ps1 -IncludeMyRequests -IncludeSubmission privately; do not
-  rerun the seed. After passing, restart the browser servers and submit one clearly
-  labelled local test request. Existing seeded data should be preserved.
+  adapter. The user then created CC-297171E0CA299772 (Other / Public lighting) in
+  the browser, supplied its detail screenshot, and confirmed both refresh and the
+  My Requests entry work. That is user-reported durable browser evidence, not an
+  automated full-browser suite. The test record was intentionally retained locally.
 - Remaining release gaps include staff/admin/management workflows, browser automation,
   full CI integration, review, deployment and operational evidence. No push or approval.
+
+## Staff workflow follow-up
+
+- User explicitly chose the existing database lifecycle and target date on acceptance
+  rather than the frontend's incompatible completed state. UI labels and choices now
+  match submitted/accepted/assigned/in_progress/on_hold/resolved/closed/rejected.
+  The local action policy and API payloads are documented in document/Frontend/README.md;
+  team review is still required before freezing/merging this integration contract.
+- Staff queue uses frontend filter/response names, minimal requester/assignee identities,
+  deterministic newest-first order and literal case-insensitive reference search. Filters
+  are validated and parameterized. Assignee lookup returns staff IDs/names only.
+- Staff-only POST /api/requests/:id/actions handles acceptance/rejection, assignment,
+  target dates and public/internal updates. Date shape/calendar validity, text lengths,
+  staff membership, lifecycle transitions and required fields are checked server-side.
+- All request changes and audit entries share a transaction. Every action compares and
+  advances row_version; stale reads or a lost compare-and-swap receive 409. Detail returns
+  rowVersion only to staff. Assignment/date changes also append attributable entries.
+  The old non-atomic status endpoint returns 410, not an unprotected alternate write path.
+- UI requires acceptance date, offers only the allowed next states, keeps failed drafts,
+  offers explicit refresh after errors and disables repeat saves until new detail data
+  arrives. Internal comment selection does not hide the accompanying public status history.
+- Assistant-run checks: backend lint and 102 unit/contract results passed; frontend lint,
+  56 tests in 10 files and production build passed. Existing jsdom canvas/colour-contrast
+  limitation remains. Database-stub tests are not proof of real PostgreSQL transactions.
+- Added rollback-only PostgreSQL suite for queue/filter/minimal fields, roles, invalid
+  acceptance dates, injected history/entry SQL failures, acceptance, stale versions,
+  staff-only assignment, date audits, comment privacy, all lifecycle stages, rejection,
+  terminal-state restrictions and the retired write route. Syntax checked, NOT yet run.
+  The savepoint adapter does not prove durable commits or simultaneous multi-connection races.
+- Test-LocalLogin.ps1 now accepts -IncludeStaff alongside the prior flags. Run privately,
+  then restart the browser review server and sign in as staff@example.com for a manual
+  lifecycle on a labelled local test request. Do not reapply migrations or seeds.
+- No push, PR approval, deployment or green CI claim. Management/admin, full browser/API
+  journey automation, root dependency reconciliation and operational evidence remain open.
 
 ## AI use
 

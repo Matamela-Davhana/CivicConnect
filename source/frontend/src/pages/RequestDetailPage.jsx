@@ -89,7 +89,7 @@ function RequestView({ request, isStaff, onChanged }) {
         )}
       </section>
 
-      {isStaff && <StaffActions request={request} onChanged={onChanged} />}
+      {isStaff && <StaffActions key={request.id} request={request} onChanged={onChanged} />}
       <Timeline entries={request.timeline ?? []} isStaff={isStaff} />
     </>
   )

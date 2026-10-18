@@ -16,7 +16,7 @@ test('request details HTTP contract (database stub)', async (t) => {
   let fail = '';
   const row = { id: requestId, reference: 'REQ-001', category: 'IT Support', status: 'submitted',
     description: 'Laptop not booting', otherExplanation: null, createdAt: '2026-10-01T00:00:00.000Z',
-    targetDate: '2026-10-20', requesterId: owner, requesterName: 'Owner', assigneeId: other, assigneeName: 'Staff' };
+    targetDate: '2026-10-20', rowVersion: 7, requesterId: owner, requesterName: 'Owner', assigneeId: other, assigneeName: 'Staff' };
   const events = [
     { id: 'history-1', visibility: 'public', author: 'Owner', message: 'Request submitted.', createdAt: row.createdAt },
     { id: 'entry-1', visibility: 'public', author: 'Staff', message: 'Acknowledged', createdAt: row.createdAt },
@@ -62,6 +62,7 @@ test('request details HTTP contract (database stub)', async (t) => {
     const response = await get('staff', other);
     assert.equal(response.status, 200);
     const payload = await response.json();
+    assert.equal(payload.rowVersion, 7);
     assert.deepEqual(payload.timeline, events);
     assert.deepEqual(payload.requester, { id: owner, name: 'Owner' });
     assert.deepEqual(payload.assignee, { id: other, name: 'Staff' });

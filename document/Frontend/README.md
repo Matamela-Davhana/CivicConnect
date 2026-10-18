@@ -49,15 +49,42 @@ All paths are under `/api`. Send `Authorization: Bearer <token>`. Errors: `{ "me
 | `GET /categories` | `[{ id, name, isOther? }]` (active only) |
 | `GET /requests/mine` | `[{ id, reference, category, status, createdAt, updatedAt }]` |
 | `POST /requests` `{categoryId, description, otherExplanation?}` | `{ id, reference }` |
-| `GET /requests/:id` | `{ id, reference, category, status, description, otherExplanation?, createdAt, targetDate?, requester?, assignee?, timeline: [{ id, visibility: 'public'｜'internal', author, message, createdAt }] }` |
-| `POST /requests/:id/actions` | `{action:'accept'}`, `{action:'reject',reason}`, `{action:'assign',assigneeId}`, `{action:'set_target',targetDate}`, `{action:'update',message,visibility,status?}` |
+| `GET /requests/:id` | `{ id, reference, category, status, description, otherExplanation?, createdAt, targetDate?, requester?, assignee?, rowVersion?, timeline: [{ id, visibility: 'public'｜'internal', author, message, createdAt }] }`; requester/assignee/rowVersion are staff-only |
+| `POST /requests/:id/actions` | Every payload requires `rowVersion`. Actions: `{action:'accept',targetDate}`, `{action:'reject',reason}`, `{action:'assign',assigneeId}`, `{action:'set_target',targetDate}`, `{action:'update',message,visibility,status?}`. Response `{id,status,rowVersion}` |
 | `GET /staff/requests?status&category&q` | Queue rows with `requester`, `assignee`, `targetDate` |
 | `GET /staff/assignees` | `[{ id, name }]` |
 | `GET /management/summary` | `{ open, overdue, completed, byStatus:[{status,count}], byCategory:[{category,count}] }` |
 | `GET/POST /admin/users`, `PATCH /admin/users/:id` | `{ id, name, email, role, active }`, patch `{role?, active?}` |
 | `GET/POST /admin/categories`, `PATCH /admin/categories/:id` | `{ id, name, active }`, patch `{active?}` |
 
-Statuses: `submitted`, `accepted`, `in_progress`, `completed`, `rejected`. Roles: `requester`, `staff`, `management`, `admin`.
+Statuses (local integration alignment, user approved 18 October): `submitted`, `accepted`,
+`assigned`, `in_progress`, `on_hold`, `resolved`, `closed`, `rejected`.
+Roles: `requester`, `staff`, `management`, `admin`.
+
+The local integration branch follows the existing database lifecycle rather than the
+original UI-only `completed` value. This is not a claim that remote PRs are updated.
+Accept requires a real date in YYYY-MM-DD format; reject requires a public reason.
+Assignment accepts only an existing staff user. Request comments/reasons are trimmed
+and limited to 1–1000 characters. Active accepted requests require a target date;
+progress beyond acceptance also requires a staff assignee. Calendar dates may be past
+or future; no unagreed deadline policy is imposed. Overdue remains based on the browser's
+local end of day and excludes resolved/closed/rejected requests.
+
+Normal path: submitted -> accepted -> assigned -> in_progress -> resolved -> closed.
+Staff may reject submitted requests, and move in_progress -> on_hold -> in_progress.
+No reopen or direct skip-to-closed action is provided. Reassignment and target-date changes
+are allowed on accepted/assigned/in_progress/on_hold requests; reassignment does not reset
+work already in progress. Resolved requests can receive comments and a closing update.
+Closed/rejected requests are read-only. Status changes are always public even when the
+accompanying comment is internal. Assignment audit comments are internal; date changes
+and rejection reasons are public.
+
+Every save compares and increments rowVersion and commits request/history/comment changes
+together. Stale versions return 409: refresh and review before retrying, never auto-replay
+the action against a newer version. Failed saves keep the draft comment. The obsolete
+PUT /staff/requests/:id/status route returns 410 instead of bypassing these rules.
+Queue `q` is a literal case-insensitive reference substring (not a wildcard pattern),
+and category is a UUID. Queue/assignee data includes only fields needed by the staff UI.
 
 Security note: the server must enforce ownership and strip internal timeline entries for requesters. The UI hides them as well, but UI checks are not access control.
 

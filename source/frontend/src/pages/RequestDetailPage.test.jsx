@@ -18,6 +18,7 @@ const request = {
   reference: 'CC-0001',
   category: 'Water',
   status: 'submitted',
+  rowVersion: 1,
   description: 'There is a burst pipe on my street.',
   createdAt: '2026-10-01T08:00:00Z',
   requester: { name: 'Thandi Mokoena' },
@@ -62,8 +63,9 @@ describe('RequestDetailPage', () => {
     api.requests.act.mockResolvedValue(null)
     const user = userEvent.setup()
     renderApp({ route: '/requests/r1', user: people.staff })
+    await user.type(await screen.findByLabelText(/Target completion date/), '2026-11-01')
     await user.click(await screen.findByRole('button', { name: 'Accept request' }))
-    expect(api.requests.act).toHaveBeenCalledWith('r1', { action: 'accept' })
+    expect(api.requests.act).toHaveBeenCalledWith('r1', { action: 'accept', targetDate: '2026-11-01', rowVersion: 1 })
     expect(await screen.findByText('Request accepted.')).toBeInTheDocument()
     expect(api.requests.get).toHaveBeenCalledTimes(2)
   })

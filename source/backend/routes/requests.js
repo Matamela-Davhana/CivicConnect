@@ -2,7 +2,17 @@ const express = require('express');
 const db = require('../db');
 const auth = require('../middleware/auth');
 const { ValidationError, validateSubmission, submitRequest } = require('../services/submit-request');
+const { StaffActionError, applyStaffAction } = require('../services/staff-actions');
 const router = express.Router();
+
+router.post('/:id/actions', auth('staff'), async (req, res) => {
+  try {
+    res.json(await applyStaffAction(db, req.params.id, req.body, req.user.id));
+  } catch (error) {
+    if (error instanceof StaffActionError) return res.status(error.status).json({ message: error.message });
+    res.status(500).json({ message: 'Could not save the staff action. Please refresh the request before retrying.' });
+  }
+});
 
 router.post('/', auth('requester'), async (req, res) => {
   try {
@@ -57,7 +67,7 @@ router.get('/:id', auth(), async (req, res) => {
     const result = await db.query(`
       SELECT r.id, r.reference, c.name AS category, r.status, r.description,
              r.other_explanation AS "otherExplanation", r.submitted_at AS "createdAt",
-             r.target_resolution_date::text AS "targetDate",
+             r.target_resolution_date::text AS "targetDate", r.row_version AS "rowVersion",
              requester.id AS "requesterId", requester.name AS "requesterName",
              assignee.id AS "assigneeId", assignee.name AS "assigneeName"
       FROM service_requests r
@@ -91,6 +101,7 @@ router.get('/:id', auth(), async (req, res) => {
       createdAt: row.createdAt, targetDate: row.targetDate, timeline: timeline.rows,
     };
     if (isStaff) {
+      detail.rowVersion = row.rowVersion;
       detail.requester = { id: row.requesterId, name: row.requesterName };
       detail.assignee = row.assigneeId ? { id: row.assigneeId, name: row.assigneeName } : null;
     }

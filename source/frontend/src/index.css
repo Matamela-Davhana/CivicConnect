@@ -483,15 +483,18 @@ dd > .badge:first-child {
   color: #29404a;
   background: #e6edef;
 }
-.badge--accepted {
+.badge--accepted,
+.badge--assigned {
   color: #0b3d75;
   background: #dcebfb;
 }
-.badge--in_progress {
+.badge--in_progress,
+.badge--on_hold {
   color: #5c3d00;
   background: #fff0c7;
 }
-.badge--completed {
+.badge--resolved,
+.badge--closed {
   color: #0d4d22;
   background: var(--success-tint);
 }

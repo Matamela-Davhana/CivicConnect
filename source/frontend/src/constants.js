@@ -33,12 +33,23 @@ export const NAV_BY_ROLE = {
 export const STATUS_LABELS = {
   submitted: 'Submitted',
   accepted: 'Accepted',
+  assigned: 'Assigned',
   in_progress: 'In progress',
-  completed: 'Completed',
+  on_hold: 'On hold',
+  resolved: 'Resolved',
+  closed: 'Closed',
   rejected: 'Rejected',
 }
 
-export const CLOSED_STATUSES = ['completed', 'rejected']
+export const CLOSED_STATUSES = ['resolved', 'closed', 'rejected']
+
+export const STAFF_TRANSITIONS = {
+  accepted: [],
+  assigned: ['in_progress'],
+  in_progress: ['on_hold', 'resolved'],
+  on_hold: ['in_progress'],
+  resolved: ['closed'],
+}
 
 export const DESCRIPTION_MIN_LENGTH = 10
 export const DESCRIPTION_MAX_LENGTH = 1000
