@@ -239,6 +239,7 @@
     "yocto-queue": "^0.1.0"
   },
   "devDependencies": {
+    "eslint": "^10.13.0",
     "jest": "^30.5.2",
     "nodemon": "^3.1.14"
   },
