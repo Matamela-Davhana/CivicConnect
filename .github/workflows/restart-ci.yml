@@ -109,6 +109,8 @@ jobs:
         run: psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f source/backend/migrations/001_initial_schema.sql
       - run: npm run test:unit
         working-directory: source/backend
+      - name: Seed only the disposable CI database
+        run: psql -h 127.0.0.1 -U postgres -d civicconnect_test -v ON_ERROR_STOP=1 -f source/backend/migrations/seed.sql
       - run: npm run test:integration
         working-directory: source/backend
       - name: Start the API and execute real HTTP journeys

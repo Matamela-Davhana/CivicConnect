@@ -3,7 +3,7 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 const requirements = {
-  frontend: { folder: 'source/frontend', scripts: ['lint', 'build'] },
+  frontend: { folder: 'source/frontend', scripts: ['lint', 'test', 'build'] },
   backend: { folder: 'source/backend', scripts: ['lint', 'start', 'test:unit', 'test:integration', 'test:e2e'] },
   browser: { folder: 'source/frontend', scripts: ['preview', 'test:e2e:install', 'test:e2e'] }
 };

@@ -57,9 +57,13 @@ test('gate CLI actually exits non-zero on a failed check', () => {
   assert.match(result.stderr, /BLOCKED.*backend/);
 });
 
-test('frontend contract accepts the existing build/lint interface', (t) => {
-  const { root } = fixture(t, 'frontend', { lint: 'eslint .', build: 'vite build' });
+test('frontend contract accepts build, lint and real test commands', (t) => {
+  const { root } = fixture(t, 'frontend', { lint: 'eslint .', test: 'vitest run', build: 'vite build' });
   assert.deepEqual(checkContract(root, 'frontend'), []);
+});
+test('frontend contract catches the previously missing test command', (t) => {
+  const { root } = fixture(t, 'frontend', { lint: 'eslint .', build: 'vite build' });
+  assert.ok(checkContract(root, 'frontend').some((line) => line.includes('missing npm script "test"')));
 });
 test('missing backend scripts and test files are reported, not skipped', (t) => {
   const { root } = fixture(t, 'backend', { test: 'echo "Error: no test specified" && exit 1' });
