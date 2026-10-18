@@ -84,8 +84,9 @@ password and unknown-user cases. It does not exercise the browser or request lif
 - Frontend needs GET /api/categories, /api/staff/assignees, /api/management/summary,
   admin GET/PATCH endpoints and POST /api/requests/:id/actions; current backend
   routes do not provide these interfaces. Do not hide these failures in the UI.
-- Request detail lookup lacks ownership enforcement and returns internal entries.
-  Backend input validation and safe response fields also require review (e.g. admin
+- Request detail access and response filtering are now implemented locally (see
+  follow-up below), pending the new real PostgreSQL checks and browser verification.
+  Other backend input validation and safe response fields still require review (e.g. admin
   create-user currently returns password_hash). No security-completeness claim.
 - Reconcile response fields and workflow/status semantics with both application owners.
 - Confirm teammate's matching root package.json/lockfile and fresh audit after the
@@ -125,7 +126,41 @@ password and unknown-user cases. It does not exercise the browser or request lif
   frontend child process. Helpers passed syntax checks; actual browser startup
   and requester login/list display still await the user.
 - Request detail authorization, other API gaps and complete browser journeys are
-  still outstanding. Do not treat the list fix as a release/security approval.
+  not established by the list-only verification above. Do not treat that list fix
+  as a release/security approval; later detail changes are recorded below.
+
+## Request details follow-up
+
+The user confirmed requester sign-in and the three seeded My Requests rows work
+in the browser against the local database. This is user-reported browser evidence,
+not an automated browser suite or proof of other journeys.
+
+- GET /api/requests/:id now implements the frontend summary and unified timeline
+  contract, with explicit output fields rather than SELECT * responses.
+- Access matches App.jsx and the frontend handoff: requester owners and staff only.
+  Management/admin/unknown roles receive 403; anonymous requests receive 401.
+- Ownership is enforced in the request SQL. Another owner's ID and a nonexistent
+  ID both receive the same 404, and no timeline query is made for an invisible request.
+  Malformed UUIDs also return 404 before reaching PostgreSQL.
+- Requesters receive only public entries, filtered in SQL. Staff also receive
+  internal entries and minimal requester/assignee IDs/names; no email or password
+  fields are exposed. Status history and comment entries are merged chronologically
+  with distinct prefixed IDs, author names, readable messages and ISO timestamps.
+- Target dates are returned as date-only strings to avoid timezone conversion.
+  Database errors return safe JSON for the existing frontend error/retry state.
+- Verified locally: backend lint; 33 Node unit/contract test results; 12 frontend
+  MyRequestsPage/RequestDetailPage tests; PowerShell helper syntax; git diff --check.
+  Unit HTTP checks use a database stub. The jsdom canvas limitation still applies.
+- Expanded the rollback-only PostgreSQL suite with real owner, other-requester,
+  staff, management and admin logins. It verifies detail field mapping, timeline
+  order/privacy, staff-only identities, identical 404s, role restrictions, query
+  parameter bypass attempts and empty timelines. Six temporary users are rolled
+  back along with their requests/history/comments. This expanded suite has NOT
+  yet run against the user's PostgreSQL database.
+- Next: run Test-LocalLogin.ps1 -IncludeMyRequests, then restart the browser review
+  servers to pick up the backend changes and open REQ-001 as the requester.
+- Submission and staff action endpoints remain unfinished. No remote branch was
+  pushed, no PR was approved and no deployment was performed by this follow-up.
 
 ## AI use
 

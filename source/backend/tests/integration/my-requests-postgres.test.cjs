@@ -4,7 +4,7 @@ const { once } = require('node:events');
 const { randomUUID } = require('node:crypto');
 const bcrypt = require('bcrypt');
 
-test('My Requests against PostgreSQL with rollback-only fixtures', { timeout: 30000 }, async (t) => {
+test('requester lists and details against PostgreSQL with rollback-only fixtures', { timeout: 30000 }, async (t) => {
   assert.ok(process.env.DATABASE_URL, 'Set a local test DATABASE_URL');
   const target = new URL(process.env.DATABASE_URL);
   assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(target.hostname), 'Local database only');
@@ -15,7 +15,8 @@ test('My Requests against PostgreSQL with rollback-only fixtures', { timeout: 30
   const originalQuery = db.query;
   let client;
   let server;
-  const users = [randomUUID(), randomUUID(), randomUUID()];
+  const roles = ['requester', 'requester', 'requester', 'staff', 'management', 'admin'];
+  const users = roles.map(() => randomUUID());
   const requestIds = [randomUUID(), randomUUID(), randomUUID()];
   t.after(async () => {
     try {
@@ -39,9 +40,9 @@ test('My Requests against PostgreSQL with rollback-only fixtures', { timeout: 30
   db.query = (...args) => client.query(...args);
   const password = randomUUID();
   const hash = await bcrypt.hash(password, 4);
-  for (const id of users) {
-    await client.query("INSERT INTO users (id, name, email, password_hash, role) VALUES ($1,'Temporary requester',$2,$3,'requester')",
-      [id, `${id}@example.test`, hash]);
+  for (const [index, id] of users.entries()) {
+    await client.query('INSERT INTO users (id, name, email, password_hash, role) VALUES ($1,$2,$3,$4,$5)',
+      [id, `Temporary ${roles[index]}`, `${id}@example.test`, hash, roles[index]]);
   }
   const category = (await client.query("SELECT id, name FROM categories WHERE name='IT Support'")).rows[0];
   assert.ok(category, 'Apply the initial schema first');
@@ -54,6 +55,8 @@ test('My Requests against PostgreSQL with rollback-only fixtures', { timeout: 30
   }
   await client.query(`INSERT INTO status_history (request_id, new_status, changed_by, changed_at)
     VALUES ($1,'submitted',$2,'2026-10-06T00:00:00Z')`, [requestIds[0], users[0]]);
+  await client.query("UPDATE service_requests SET assignee_id=$1, target_resolution_date='2026-10-20' WHERE id=$2",
+    [users[3], requestIds[0]]);
   for (const id of requestIds.slice(0, 2)) {
     await client.query(`INSERT INTO request_entries (request_id, entry_type, author_id, content, created_at)
       VALUES ($1,'public',$2,'Public fixture','2026-10-05T00:00:00Z'),
@@ -100,5 +103,66 @@ test('My Requests against PostgreSQL with rollback-only fixtures', { timeout: 30
   await t.test('last updated falls back to submission when there are no updates', async () => {
     const [row] = await list(1);
     assert.equal(row.updatedAt, row.createdAt);
+  });
+  const detail = (index, id = requestIds[0]) => fetch(`${base}/api/requests/${id}`, {
+    headers: index === null ? {} : { Authorization: `Bearer ${tokens[index]}` },
+  });
+  await t.test('owner detail contains frontend summary and sorted public-only timeline', async () => {
+    const response = await detail(0);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.deepEqual(Object.keys(payload).sort(), ['category', 'createdAt', 'description', 'id',
+      'otherExplanation', 'reference', 'status', 'targetDate', 'timeline']);
+    assert.equal(payload.id, requestIds[0]);
+    assert.equal(payload.category, 'IT Support');
+    assert.equal(payload.description, 'Private fixture description');
+    assert.equal(payload.createdAt, '2026-10-01T00:00:00.000Z');
+    assert.equal(payload.targetDate, '2026-10-20');
+    assert.equal(payload.otherExplanation, null);
+    assert.equal(payload.timeline.length, 2);
+    assert.deepEqual(payload.timeline.map((e) => e.message), ['Public fixture', 'Request submitted.']);
+    assert.deepEqual(payload.timeline.map((e) => e.createdAt), ['2026-10-05T00:00:00.000Z', '2026-10-06T00:00:00.000Z']);
+    for (const entry of payload.timeline) {
+      assert.equal(entry.visibility, 'public');
+      assert.deepEqual(Object.keys(entry).sort(), ['author', 'createdAt', 'id', 'message', 'visibility']);
+      assert.equal(entry.author, 'Temporary requester');
+    }
+    assert.equal(JSON.stringify(payload).includes('Internal fixture'), false);
+    assert.equal(JSON.stringify(payload).includes('password_hash'), false);
+  });
+  await t.test('staff detail includes internal notes and only minimal identity fields', async () => {
+    const response = await detail(3);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.deepEqual(payload.requester, { id: users[0], name: 'Temporary requester' });
+    assert.deepEqual(payload.assignee, { id: users[3], name: 'Temporary staff' });
+    assert.equal(payload.timeline.length, 3);
+    assert.equal(payload.timeline[2].visibility, 'internal');
+    assert.equal(payload.timeline[2].message, 'Internal fixture must stay private');
+    assert.equal(JSON.stringify(payload).includes('@example.test'), false);
+    assert.equal(JSON.stringify(payload).includes(hash), false);
+  });
+  await t.test('another owner, nonexistent UUID and malformed ID receive the same 404', async () => {
+    for (const [index, id] of [[1, requestIds[0]], [0, randomUUID()], [0, 'invalid-id']]) {
+      const response = await detail(index, id);
+      assert.equal(response.status, 404);
+      assert.deepEqual(await response.json(), { message: 'Request not found.' });
+    }
+  });
+  await t.test('owner and role query parameters cannot bypass detail authorization', async () => {
+    const response = await detail(1, `${requestIds[0]}?requester_id=${users[0]}&role=staff`);
+    assert.equal(response.status, 404);
+  });
+  for (const [index, name] of [[null, 'anonymous'], [4, 'management'], [5, 'admin']]) {
+    await t.test(`${name} cannot access individual request details`, async () => {
+      assert.equal((await detail(index)).status, index === null ? 401 : 403);
+    });
+  }
+  await t.test('an owned request without history returns an empty timeline', async () => {
+    const response = await detail(1, requestIds[2]);
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.deepEqual(payload.timeline, []);
+    assert.equal(payload.targetDate, null);
   });
 });
